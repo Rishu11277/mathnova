@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="description" content="Math Nova — a Grade 1 math practice game covering every Common Core Grade 1 standard, with arcade breaks.">
+<meta name="theme-color" content="#100d24">
+<title>Math Nova · Grade 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#100d24; --bg2:#3a2470; --ink:#f5f2ff; --dim:#b3a9dd;
+  --accent:#ffb020; --accent2:#ff5d73; --good:#45e0a0; --bad:#ff5d73;
+  --card:rgba(255,255,255,.055); --card2:rgba(255,255,255,.09); --edge:rgba(255,255,255,.13);
+  --ui:'Baloo 2',system-ui,-apple-system,sans-serif;
+  --num:'Space Grotesk',ui-monospace,monospace;
+  --shadow:0 26px 60px -20px rgba(0,0,0,.75);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--ui);
+  overflow:hidden;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+  -webkit-font-smoothing:antialiased;transition:background-color .7s ease;
+}
+button,select,input{font-family:inherit;color:inherit;font-size:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+svg{display:block}
+[hidden]{display:none !important}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:8px}
+
+#sky{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+#board{position:fixed;inset:0;width:100%;height:100%;z-index:20;pointer-events:none;touch-action:none}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:45;pointer-events:none}
+
+.app{position:relative;z-index:10;height:100%;max-width:1040px;margin:0 auto;
+  padding:calc(10px + env(safe-area-inset-top)) 14px calc(10px + env(safe-area-inset-bottom))}
+.screen{display:none;height:100%;flex-direction:column;gap:clamp(8px,1.6vh,18px);min-height:0}
+.screen.on{display:flex}
+.scroll{flex:1;min-height:0;overflow:auto;padding:2px 4px 14px;-webkit-overflow-scrolling:touch}
+
+/* ---------- primitives ---------- */
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.grow{flex:1}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 26px;border-radius:18px;cursor:pointer;font-weight:800;font-size:1.05rem;border:none;
+  background:linear-gradient(180deg,var(--accent),#e89406);color:#2a1a00;
+  box-shadow:0 14px 30px -12px var(--accent);transition:transform .12s ease,filter .2s ease
+}
+.btn:hover{filter:brightness(1.07);transform:translateY(-2px)}
+.btn:active{transform:translateY(1px)}
+.btn.big{padding:18px 44px;font-size:1.35rem;border-radius:24px}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--edge);box-shadow:none;font-weight:700}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn.danger{background:rgba(255,93,115,.16);color:var(--accent2);border:1px solid rgba(255,93,115,.4);box-shadow:none}
+.btn:disabled{opacity:.45;cursor:default;transform:none;filter:none}
+.icon{width:42px;height:42px;padding:0;border-radius:14px;background:var(--card);border:1px solid var(--edge);
+  cursor:pointer;font-size:1.1rem;display:grid;place-items:center;flex:none}
+.icon:hover{border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:24px;padding:16px 18px}
+.chip{display:inline-flex;align-items:baseline;gap:7px;padding:6px 14px;border-radius:14px;
+  background:var(--card);border:1px solid var(--edge);font-size:.82rem;color:var(--dim)}
+.chip b{font-family:var(--num);font-weight:700;font-size:1.05rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.chip.mango b{color:var(--accent)}
+.chip.fire b{color:var(--accent2)}
+h1,h2,h3{margin:0;font-weight:800;line-height:1.1}
+h2{font-size:clamp(1.3rem,3.6vmin,1.8rem)}
+h3{font-size:1.05rem}
+.muted{color:var(--dim)}
+.small{font-size:.85rem}
+.tag{font-family:var(--num);font-size:.7rem;padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.08);color:var(--dim)}
+
+/* segmented control */
+.seg{display:inline-flex;gap:4px;padding:4px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--edge);flex-wrap:wrap}
+.seg button{padding:7px 14px;border-radius:10px;border:none;background:transparent;color:var(--dim);cursor:pointer;font-weight:700;font-size:.9rem}
+.seg button.on{background:var(--accent);color:#2a1a00}
+.seg.swatches button{width:30px;height:30px;padding:0;border-radius:9px;border:2px solid transparent}
+.seg.swatches button.on{border-color:#fff;background:none}
+
+/* checkbox row */
+.check{display:flex;align-items:center;gap:12px;padding:10px 8px;border-radius:14px;cursor:pointer;transition:background .15s}
+.check:hover{background:rgba(255,255,255,.04)}
+.check input{position:absolute;opacity:0;width:0;height:0}
+.box{width:26px;height:26px;border-radius:9px;border:2px solid var(--dim);display:grid;place-items:center;flex:none;transition:all .18s cubic-bezier(.34,1.56,.64,1)}
+.box svg{width:16px;height:16px;opacity:0;transform:scale(.5);transition:all .18s}
+.check input:checked + .box{background:var(--good);border-color:var(--good)}
+.check input:checked + .box svg{opacity:1;transform:scale(1)}
+.check input:focus-visible + .box{outline:3px solid var(--accent);outline-offset:2px}
+.check .lbl{flex:1;min-width:0}
+.check .lbl b{display:block;font-weight:700}
+.check .lbl span{display:block;font-size:.8rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- home ---------- */
+.hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:clamp(6px,3vh,30px) 0 6px}
+.hero .logo{width:clamp(86px,16vmin,130px);height:auto}
+.hero h1{font-size:clamp(2rem,7vmin,3.4rem);letter-spacing:-.5px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{margin:0;color:var(--dim);font-size:clamp(.95rem,2.4vmin,1.15rem)}
+.players{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.player{display:flex;align-items:center;gap:9px;padding:8px 16px 8px 10px;border-radius:18px;cursor:pointer;
+  background:var(--card);border:2px solid var(--edge);font-weight:700;transition:all .15s}
+.player .av{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:1.2rem}
+.player.on{border-color:var(--accent);background:rgba(255,176,32,.12)}
+.player.add{color:var(--dim);border-style:dashed}
+.home-actions{display:flex;flex-direction:column;align-items:center;gap:12px;padding-bottom:8px}
+.home-actions .row{justify-content:center}
+.stats-strip{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+
+/* ---------- skills ---------- */
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.presets button{padding:8px 14px;border-radius:14px;background:var(--card);border:1px solid var(--edge);color:var(--ink);cursor:pointer;font-weight:700;font-size:.9rem}
+.presets button:hover{border-color:var(--accent)}
+.domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.domain{padding:12px 12px 6px}
+.domain header{display:flex;align-items:center;gap:10px;padding:4px 8px 10px}
+.domain header .ic{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:1.3rem;background:rgba(255,255,255,.08)}
+.domain header .lk{color:var(--dim);font-size:.85rem;cursor:pointer;border:none;background:none;padding:4px 8px;border-radius:8px}
+.domain header .lk:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.cluster{font-size:.74rem;color:var(--dim);text-transform:none;letter-spacing:.2px;padding:8px 8px 2px;opacity:.85}
+
+/* ---------- settings ---------- */
+.setting{display:flex;align-items:center;gap:14px;padding:12px 6px;border-bottom:1px solid var(--edge);flex-wrap:wrap}
+.setting:last-child{border-bottom:none}
+.setting .lbl{flex:1;min-width:180px}
+.setting .lbl b{display:block}
+.setting .lbl span{font-size:.82rem;color:var(--dim)}
+
+/* ---------- play ---------- */
+.playhead{display:flex;align-items:center;gap:10px}
+.prog{flex:1;height:10px;border-radius:10px;background:rgba(255,255,255,.12);overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s ease}
+.stage{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,1.8vh,20px)}
+.pips{display:flex;gap:8px;align-items:center}
+.pips i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.16);transition:all .35s cubic-bezier(.34,1.56,.64,1)}
+.pips i.on{background:var(--accent);box-shadow:0 0 14px var(--accent);transform:scale(1.25)}
+.pips span{font-size:.78rem;color:var(--dim);margin-left:5px}
+
+.qcard{
+  width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1.6vh,16px);
+  padding:clamp(14px,2.6vh,26px) clamp(16px,3vw,34px);border-radius:32px;background:var(--card);border:1px solid var(--edge);
+  box-shadow:var(--shadow), inset 0 1px 0 rgba(255,255,255,.07);max-height:100%;overflow:auto
+}
+.skill{display:flex;align-items:center;gap:8px;align-self:flex-start;font-size:.8rem;color:var(--dim)}
+.skill .speak{width:34px;height:34px;border-radius:11px;font-size:1rem}
+.prompt{font-size:clamp(1.05rem,2.9vmin,1.4rem);font-weight:600;text-align:center;line-height:1.35;max-width:640px}
+.prompt.story{text-align:left;font-weight:600;font-size:clamp(1.05rem,3vmin,1.35rem);line-height:1.5}
+.eq{
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:clamp(8px,1.8vw,18px);
+  font-family:var(--num);font-weight:700;font-size:clamp(1.9rem,7.2vmin,3.8rem);line-height:1;font-variant-numeric:tabular-nums
+}
+.eq .op{color:var(--accent2);font-weight:500}
+.eq .eqs{color:var(--dim);font-weight:500}
+.eq .sub{width:100%;text-align:center;font-family:var(--ui);font-weight:600;font-size:clamp(.9rem,2.4vmin,1.1rem);color:var(--dim);margin-top:4px}
+.slot{
+  display:inline-grid;place-items:center;
+  width:clamp(52px,11vmin,96px);height:clamp(52px,11vmin,96px);
+  border-radius:20px;border:3px dashed var(--accent);color:var(--accent);
+  background:rgba(0,0,0,.28);transition:all .4s cubic-bezier(.34,1.56,.64,1)
+}
+.slot.wait{animation:breathe 2.6s ease-in-out infinite}
+.slot.done{border-style:solid;border-color:var(--good);color:var(--good);background:rgba(69,224,160,.12);box-shadow:0 0 34px -6px var(--good)}
+@keyframes breathe{50%{border-color:var(--accent2);transform:scale(1.04)}}
+.stim{width:100%;display:flex;justify-content:center}
+.stim svg{max-width:100%;height:auto;max-height:min(30vh,260px)}
+.stim.emoji{flex-wrap:wrap;gap:6px 4px;font-size:clamp(1.3rem,4vmin,2rem);line-height:1.1;max-width:560px}
+.stim.emoji .grp{display:flex;flex-wrap:wrap;gap:4px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--edge);max-width:100%}
+.stim.emoji .grp span.x{opacity:.32;filter:grayscale(1);position:relative}
+.stim.emoji .grp span.x::after{content:'';position:absolute;left:10%;right:10%;top:50%;height:3px;background:var(--accent2);transform:rotate(-20deg);border-radius:2px}
+.stim.emoji .plus{align-self:center;color:var(--accent2);font-family:var(--num);font-weight:700;font-size:1.6rem;padding:0 4px}
+
+.pad{display:grid;gap:clamp(8px,1.6vh,14px);width:100%;max-width:560px}
+.pad[data-n="2"]{grid-template-columns:repeat(2,1fr)}
+.pad[data-n="3"]{grid-template-columns:repeat(3,1fr)}
+.pad[data-n="4"]{grid-template-columns:repeat(2,1fr)}
+.pad.vis[data-n="4"]{grid-template-columns:repeat(4,1fr)}
+.opt{
+  min-height:clamp(54px,9.5vh,88px);border-radius:22px;cursor:pointer;padding:8px 10px;
+  background:var(--card);border:1px solid var(--edge);display:grid;place-items:center;
+  font-family:var(--num);font-weight:700;font-size:clamp(1.35rem,4.6vmin,2.3rem);font-variant-numeric:tabular-nums;
+  box-shadow:0 12px 26px -14px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.06);
+  transition:transform .12s ease,border-color .2s ease,background .2s ease
+}
+.opt.txt{font-family:var(--ui);font-weight:700;font-size:clamp(1rem,2.8vmin,1.25rem);line-height:1.25;text-align:center}
+.opt.sym{font-size:clamp(1.8rem,6vmin,3rem)}
+.opt.vis{padding:10px}
+.opt.vis svg{width:100%;height:auto;max-height:min(16vh,120px)}
+.opt:hover:not(:disabled){border-color:var(--accent);transform:translateY(-3px)}
+.opt:active:not(:disabled){transform:translateY(1px)}
+.opt:disabled{cursor:default;opacity:.45}
+.opt.hit{background:rgba(69,224,160,.2);border-color:var(--good);color:var(--good);opacity:1}
+.opt.miss{background:rgba(255,93,115,.2);border-color:var(--accent2);color:var(--accent2);opacity:1}
+.opt.reveal{border-color:var(--good);opacity:1;box-shadow:0 0 0 3px rgba(69,224,160,.45)}
+.hint{font-size:.9rem;color:var(--dim);min-height:1.3em;text-align:center;margin:0}
+.hint.good{color:var(--good)}
+.hint.bad{color:var(--accent2)}
+.hintbox{width:100%;max-width:640px;display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:16px;
+  background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35);font-size:.95rem;line-height:1.4}
+.hintbox i{font-style:normal;flex:none}
+.solution{width:100%;max-width:640px;border-radius:20px;background:rgba(69,224,160,.07);border:1px solid rgba(69,224,160,.3);padding:12px 16px 8px}
+.solution h4{margin:0 0 6px;font-size:.95rem;color:var(--good);display:flex;align-items:center;gap:8px}
+.solution ol{margin:0;padding-left:0;list-style:none;counter-reset:st}
+.solution li{counter-increment:st;display:flex;gap:12px;padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:.98rem;line-height:1.4}
+.solution li::before{content:counter(st);flex:none;width:24px;height:24px;border-radius:50%;background:var(--good);color:#0b2a1e;font-weight:800;font-size:.8rem;display:grid;place-items:center;margin-top:1px}
+.solution li:first-child{border-top:none}
+.soltoggle{background:none;border:1px solid var(--edge);color:var(--dim);padding:6px 14px;border-radius:12px;cursor:pointer;font-weight:700;font-size:.85rem}
+.soltoggle:hover{color:var(--ink);border-color:var(--good)}
+.tries{display:flex;gap:6px;margin-left:auto}
+.tries i{width:10px;height:10px;border-radius:50%;background:var(--accent);opacity:.9}
+.tries i.used{background:rgba(255,255,255,.18)}
+
+.tools{position:relative;z-index:30;display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.tool{padding:8px 16px;border-radius:14px;cursor:pointer;font-weight:600;font-size:.88rem;background:var(--card);border:1px solid var(--edge);color:var(--dim);transition:all .2s}
+.tool:hover{color:var(--ink)}
+.tool.on{background:var(--accent);border-color:var(--accent);color:#2a1a00;font-weight:800}
+.tool.wipe{color:var(--accent2);border-color:rgba(255,93,115,.35)}
+
+/* ---------- summary / report ---------- */
+.ring{width:150px;height:150px;position:relative;display:grid;place-items:center}
+.ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{font-family:var(--num);font-size:2.2rem}
+.ring small{display:block;font-family:var(--ui);font-size:.8rem;color:var(--dim);text-align:center}
+.skillrow{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid var(--edge)}
+.skillrow:last-child{border-bottom:none}
+.skillrow .name{flex:1;min-width:0}
+.skillrow .name b{display:block;font-weight:700}
+.skillrow .name span{font-size:.78rem;color:var(--dim)}
+.meter{width:140px;height:9px;border-radius:9px;background:rgba(255,255,255,.12);overflow:hidden;flex:none}
+.meter i{display:block;height:100%;background:var(--good)}
+.meter i.mid{background:var(--accent)}
+.meter i.low{background:var(--accent2)}
+.pct{font-family:var(--num);width:56px;text-align:right;font-variant-numeric:tabular-nums;flex:none}
+.badges{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.badge{display:flex;flex-direction:column;align-items:center;gap:4px;width:88px;padding:10px 6px;border-radius:18px;background:var(--card);border:1px solid var(--edge);font-size:.72rem;color:var(--dim);text-align:center}
+.badge i{font-style:normal;font-size:1.7rem}
+.badge.on{border-color:var(--accent);color:var(--ink);background:rgba(255,176,32,.1)}
+.badge:not(.on) i{filter:grayscale(1);opacity:.45}
+
+/* ---------- modals ---------- */
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:14px;
+  background:rgba(7,5,18,.88);backdrop-filter:blur(16px);opacity:0;pointer-events:none;transition:opacity .3s ease}
+.modal.on{opacity:1;pointer-events:auto}
+.sheet{width:min(780px,96vw);max-height:96vh;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:clamp(14px,2.4vh,22px);
+  border-radius:32px;border:1px solid var(--edge);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.025));box-shadow:0 40px 90px -30px #000}
+.sheet.narrow{width:min(460px,96vw)}
+.clock{font-family:var(--num);font-weight:700;font-size:1.15rem;color:var(--accent);margin-left:auto;font-variant-numeric:tabular-nums}
+.bar{height:7px;border-radius:7px;background:rgba(255,255,255,.13);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));transform-origin:left;transition:transform .3s linear}
+.say{font-size:.92rem;line-height:1.45;color:var(--dim);margin:0}
+.mgwrap{position:relative;width:100%;height:min(52vh,64vw);min-height:230px;border-radius:24px;overflow:hidden;background:#06051a;border:1px solid var(--edge)}
+#mg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.gamegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.quests{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.quest{display:flex;flex-direction:column;gap:5px;padding:9px 12px;border-radius:14px;background:var(--card);border:1px solid var(--edge);font-size:.82rem}
+.quest .qt{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.quest .qt b{font-weight:700}
+.quest .qt span{color:var(--accent);font-family:var(--num);font-size:.78rem;white-space:nowrap}
+.quest .qb{height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden}
+.quest .qb i{display:block;height:100%;background:var(--accent);transition:width .4s ease}
+.quest.done{border-color:var(--good);background:rgba(69,224,160,.08)}
+.quest.done .qb i{background:var(--good)}
+.quest.done .qt span{color:var(--good)}
+.hangar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.skin{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:16px;background:var(--card);border:1px solid var(--edge)}
+.skin.on{border-color:var(--accent)}
+.skin .sw{width:34px;height:34px;border-radius:12px;flex:none;position:relative}
+.skin .sw::after{content:'';position:absolute;right:-4px;bottom:-4px;width:16px;height:16px;border-radius:50%;border:2px solid var(--bg);background:var(--trim)}
+.skin .nm{flex:1;min-width:0}
+.skin .nm b{display:block}
+.skin .nm span{font-size:.78rem;color:var(--dim)}
+.skin button{padding:7px 12px;border-radius:12px;font-weight:700;font-size:.82rem;cursor:pointer;border:1px solid var(--edge);background:var(--card2);color:var(--ink)}
+.skin button.buy{background:var(--accent);color:#2a1a00;border-color:var(--accent)}
+.skin button:disabled{opacity:.45;cursor:default}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);z-index:80;
+  padding:12px 20px;border-radius:18px;background:rgba(20,14,40,.92);border:1px solid var(--accent);color:var(--ink);font-weight:700;
+  box-shadow:0 20px 50px -20px #000;opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.34,1.56,.64,1);max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tabs{display:flex;gap:6px}
+.tabs button{padding:8px 16px;border-radius:12px;border:1px solid var(--edge);background:var(--card);color:var(--dim);font-weight:700;cursor:pointer}
+.tabs button.on{background:var(--accent);color:#2a1a00;border-color:var(--accent)}
+.gamecard{padding:14px 12px;border-radius:20px;background:var(--card);border:1px solid var(--edge);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:6px}
+.gamecard:hover{border-color:var(--accent)}
+.gamecard i{font-style:normal;font-size:1.6rem}
+.gamecard b{font-weight:800}
+.gamecard span{font-size:.78rem;color:var(--dim)}
+.avatars{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.avatars button{aspect-ratio:1;font-size:1.6rem;border-radius:14px;background:var(--card);border:2px solid var(--edge);cursor:pointer}
+.avatars button.on{border-color:var(--accent);background:rgba(255,176,32,.14)}
+input.text{padding:12px 14px;border-radius:14px;border:1px solid var(--edge);background:rgba(0,0,0,.3);color:var(--ink);font-weight:700;font-size:1.1rem;width:100%}
+
+@media(max-height:600px){
+  .pad[data-n="4"]{grid-template-columns:repeat(4,1fr);max-width:760px}
+  .hero{padding:2px 0}.hero .logo{width:60px}.hero p{display:none}
+  .stim svg{max-height:22vh}
+}
+@media(max-width:560px){
+  .pad.vis[data-n="4"]{grid-template-columns:repeat(2,1fr)}
+  .meter{width:90px}
+}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;transition-duration:.08s !important}}
+</style>
+</head>
+<body>
+
+<canvas id="sky" aria-hidden="true"></canvas>
+
+<div class="app">
+
+  <!-- ================= HOME ================= -->
+  <section class="screen on" id="s-home">
+    <div class="row">
+      <div class="stats-strip" id="home-stats"></div>
+      <span class="grow"></span>
+      <button class="icon" id="go-report" aria-label="Progress report" title="Progress report">📈</button>
+      <button class="icon" id="go-settings" aria-label="Settings" title="Settings">⚙️</button>
+    </div>
+    <div class="scroll">
+      <div class="hero">
+        <svg class="logo" viewBox="0 0 120 120" aria-hidden="true">
+          <defs><radialGradient id="lg" cx=".4" cy=".35"><stop offset="0" stop-color="#fff3c4"/><stop offset="1" stop-color="#ffb020"/></radialGradient></defs>
+          <path d="M52 66 L8 108 L46 78 Z" fill="#ff5d73" opacity=".9"/>
+          <path d="M60 74 L26 112 L66 86 Z" fill="#ff5d73" opacity=".5"/>
+          <circle cx="76" cy="44" r="30" fill="url(#lg)"/>
+          <circle cx="88" cy="32" r="7" fill="#fff" opacity=".8"/>
+          <circle cx="66" cy="54" r="4" fill="#e89406" opacity=".5"/>
+        </svg>
+        <h1>Math <em>Nova</em></h1>
+        <p>Every Grade 1 math skill, lit up with arcade breaks.</p>
+      </div>
+      <div class="home-actions">
+        <div class="players" id="players"></div>
+        <button class="btn big" id="play">Play</button>
+        <div class="row">
+          <button class="btn ghost" id="go-skills">Choose skills <span class="tag" id="skill-count"></span></button>
+          <button class="btn ghost" id="go-arcade">Arcade</button>
+        </div>
+        <div class="badges" id="home-badges"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SKILLS ================= -->
+  <section class="screen" id="s-skills">
+    <div class="row">
+      <button class="icon" data-back aria-label="Back">←</button>
+      <h2>Choose skills</h2>
+      <span class="grow"></span>
+      <span class="chip">Selected <b id="skills-selected">0</b></span>
+    </div>
+    <div class="presets" id="presets"></div>
+    <div class="scroll"><div class="domains" id="domains"></div></div>
+    <div class="row" style="justify-content:center"><button class="btn" data-back>Done</button></div>
+  </section>
+
+  <!-- ================= SETTINGS ================= -->
+  <section class="screen" id="s-settings">
+    <div class="row">
+      <button class="icon" data-back aria-label="Back">←</button>
+      <h2>Settings</h2>
+    </div>
+    <div class="scroll"><div class="card" id="settings-list"></div></div>
+  </section>
+
+  <!-- ================= REPORT ================= -->
+  <section class="screen" id="s-report">
+    <div class="row">
+      <button class="icon" data-back aria-label="Back">←</button>
+      <h2>Progress</h2>
+      <span class="grow"></span>
+      <span class="chip" id="report-player"></span>
+    </div>
+    <div class="scroll"><div class="card" id="report-list"></div></div>
+  </section>
+
+  <!-- ================= PLAY ================= -->
+  <section class="screen" id="s-play">
+    <div class="playhead">
+      <button class="icon" id="quit" aria-label="Back to home">×</button>
+      <div class="prog"><i id="prog"></i></div>
+      <span class="chip fire" id="streak-chip" title="Streak">🔥 <b id="streak">0</b></span>
+      <span class="chip mango">★ <b id="round-stars">0</b></span>
+    </div>
+    <div class="stage">
+      <div class="pips" id="pips"></div>
+      <div class="qcard" id="qcard">
+        <div class="skill" style="width:100%"><span id="q-skill"></span><button class="icon speak" id="speak" aria-label="Read aloud">🔊</button><button class="icon speak" id="hint-btn" aria-label="Show a hint">💡</button><div class="tries" id="tries" aria-label="Tries left"><i></i><i></i></div></div>
+        <div id="q-prompt" class="prompt"></div>
+        <div class="hintbox" id="hintbox" hidden><i>💡</i><span id="hint-text"></span></div>
+        <div id="q-eq" class="eq" hidden></div>
+        <div id="q-stim" class="stim"></div>
+        <div class="pad" id="pad"></div>
+        <p class="hint" id="hint"></p>
+        <button class="soltoggle" id="sol-toggle" hidden>See how to solve it</button>
+        <div class="solution" id="solution" hidden><h4>✅ How to solve it</h4><ol id="sol-steps"></ol></div>
+      </div>
+      <button class="btn" id="next-btn">Next</button>
+    </div>
+    <footer class="tools">
+      <button class="tool on" id="tool-tap">Tap</button>
+      <button class="tool" id="tool-pen">Draw</button>
+      <button class="tool" id="tool-eraser">Erase</button>
+      <button class="tool wipe" id="tool-wipe">Clear</button>
+    </footer>
+  </section>
+
+  <!-- ================= SUMMARY ================= -->
+  <section class="screen" id="s-summary">
+    <div class="scroll">
+      <div class="hero" style="padding-top:2vh">
+        <h2 id="sum-title">Round complete</h2>
+        <div class="ring" id="ring"></div>
+        <div class="stats-strip" id="sum-stats"></div>
+      </div>
+      <div class="card" id="sum-skills"></div>
+      <div class="badges" id="sum-badges" style="margin-top:12px"></div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn ghost" id="sum-home">Home</button>
+      <button class="btn big" id="sum-again">Play again</button>
+    </div>
+  </section>
+</div>
+
+<canvas id="board" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<!-- ================= ARCADE ================= -->
+<div class="modal" id="arcade">
+  <div class="sheet">
+    <div class="row">
+      <h3 id="mg-title">Arcade</h3>
+      <span class="chip" id="mg-rank"></span>
+      <span class="chip mango">💎 <b id="mg-gems">0</b></span>
+      <div class="clock" id="mg-clock"></div>
+    </div>
+    <div class="bar" id="mg-barwrap"><i id="mg-bar"></i></div>
+    <p class="say" id="mg-say"></p>
+    <div class="mgwrap"><canvas id="mg"></canvas></div>
+    <div class="quests" id="mg-quests"></div>
+    <div class="row">
+      <p class="say" id="mg-best"></p>
+      <span class="grow"></span>
+      <button class="btn ghost" id="mg-switch">Switch game</button>
+      <button class="btn" id="mg-done">Back to math</button>
+    </div>
+  </div>
+</div>
+
+<!-- arcade picker -->
+<div class="modal" id="picker">
+  <div class="sheet">
+    <div class="row"><h3 id="picker-title">Arcade</h3><span class="chip" id="pk-rank"></span><span class="chip mango">💎 <b id="pk-gems">0</b></span><span class="grow"></span><button class="icon" id="picker-close" aria-label="Close">×</button></div>
+    <div class="tabs"><button class="on" id="tab-games">Games</button><button id="tab-hangar">Hangar</button><button id="tab-quests">Quests</button></div>
+    <div class="gamegrid" id="gamegrid"></div>
+    <div class="hangar" id="hangar" hidden></div>
+    <div class="quests" id="questlist" hidden></div>
+    <p class="say" id="picker-note">Complete quests to earn gems. Spend gems in the Hangar on new ship colors.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<!-- profile editor -->
+<div class="modal" id="profile-modal">
+  <div class="sheet narrow">
+    <h3 id="pm-title">New player</h3>
+    <input class="text" id="pm-name" maxlength="14" placeholder="Name" autocomplete="off">
+    <div class="avatars" id="pm-avatars"></div>
+    <div class="row">
+      <button class="btn danger" id="pm-delete">Remove</button>
+      <span class="grow"></span>
+      <button class="btn ghost" id="pm-cancel">Cancel</button>
+      <button class="btn" id="pm-save">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   GENERATORS — pure functions, no DOM. Every Grade 1 CCSS standard.
+   A problem: { prompt, story, eq, stim, stimEmoji, options[], answer, read, vis, fixed }
+   option: { t (text) | h (html), v (value), cls }
+   ============================================================ */
+/* GEN-START */
+const ri = (a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick = a=>a[Math.floor(Math.random()*a.length)];
+const chance = p=>Math.random()<p;
+const shuffle = a=>{ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const pad2 = n=>String(n).padStart(2,'0');
+const countStr = (from,k,dir)=>{ const a=[]; for(let i=1;i<=k;i++) a.push(from+dir*i); return a.join(', '); };
+const tens = n=>Math.floor(n/10), ones = n=>n%10;
+const S = (...steps)=>steps.filter(Boolean);
+
+function finalize(opts, correctV, fixed){
+  if(!fixed) shuffle(opts);
+  return { options:opts, answer:opts.findIndex(o=>o.v===correctV), fixed:!!fixed };
+}
+/* numeric options near the answer */
+function numOpts(ans, o={}){
+  const {min=0, max=Infinity, count=4, spread=4, prefer=[]} = o;
+  const set = new Set([ans]);
+  for(const p of prefer) if(set.size<count && p!==ans && p>=min && p<=max && Number.isInteger(p)) set.add(p);
+  let tries = 0;
+  while(set.size<count && tries<300){ tries++; const d = ans+ri(-spread,spread); if(d!==ans && d>=min && d<=max) set.add(d); }
+  let k = 1;
+  while(set.size<count && k<2000){ for(const d of [ans-k,ans+k]) if(set.size<count && d>=min && d<=max && d!==ans) set.add(d); k++; }
+  return finalize([...set].map(v=>({t:String(v),v})), ans);
+}
+function textOpts(correct, distractors, cls='txt', fixed){
+  const seen = new Set([correct]); const opts = [{t:correct,v:correct,cls}];
+  for(const d of distractors){ if(opts.length>=4) break; if(!seen.has(d)){ seen.add(d); opts.push({t:d,v:d,cls}); } }
+  return finalize(opts, correct, fixed);
+}
+function htmlOpts(correct, distractors, cls='vis'){
+  const opts = [{h:correct.h,v:'ok',cls}];
+  distractors.slice(0,3).forEach((d,i)=>opts.push({h:d.h,v:'d'+i,cls}));
+  return finalize(opts,'ok');
+}
+
+/* ---------- equation rendering ---------- */
+const OPS = new Set(['+','−','=','<','>',',']);
+function eqHtml(tokens, sub){
+  let h = '';
+  for(const t of tokens){
+    if(t === '?') h += '<span class="slot wait" id="slot">?</span>';
+    else if(t === '=' || t === ',') h += '<span class="eqs">'+t+'</span>';
+    else if(typeof t === 'string' && OPS.has(t)) h += '<span class="op">'+t+'</span>';
+    else if(typeof t === 'object' && t.w) h += '<span class="sub" style="width:auto;margin:0;font-size:.55em;align-self:center">'+t.w+'</span>';
+    else h += '<span class="n">'+t+'</span>';
+  }
+  if(sub) h += '<div class="sub">'+sub+'</div>';
+  return h;
+}
+function readEq(tokens){
+  return tokens.map(t=>{
+    if(t === '?') return 'what number';
+    if(t === '+') return 'plus'; if(t === '−') return 'minus'; if(t === '=') return 'equals';
+    if(t === '<') return 'is less than'; if(t === '>') return 'is greater than'; if(t === ',') return ',';
+    if(typeof t === 'object') return t.w;
+    return String(t);
+  }).join(' ');
+}
+
+/* ---------- SVG builders ---------- */
+const SVG = (w,h,inner,extra='')=>'<svg viewBox="0 0 '+w+' '+h+'" width="'+w+'" height="'+h+'" role="img" '+extra+'>'+inner+'</svg>';
+const HUES = ['#ffb020','#ff5d73','#45e0a0','#5dc8ff','#c98bff','#ff9b5d'];
+
+function svgNumberLine(lo,hi,mark){
+  const W = 620, H = 74, x0 = 26, x1 = W-26, step = (x1-x0)/(hi-lo);
+  let s = '<line x1="'+(x0-14)+'" y1="34" x2="'+(x1+14)+'" y2="34" stroke="var(--dim)" stroke-width="3" stroke-linecap="round"/>';
+  for(let n=lo;n<=hi;n++){
+    const x = x0+(n-lo)*step;
+    s += '<line x1="'+x+'" y1="26" x2="'+x+'" y2="42" stroke="var(--dim)" stroke-width="2.5"/>';
+    s += '<text x="'+x+'" y="64" fill="var(--ink)" font-size="15" text-anchor="middle" font-family="Space Grotesk,monospace" font-weight="700">'+n+'</text>';
+    if(n === mark) s += '<circle cx="'+x+'" cy="34" r="9" fill="var(--accent)"/>';
+  }
+  return SVG(W,H,s);
+}
+function svgTenFrames(n){
+  const c = 20, frames = Math.max(1,Math.ceil(n/10)), cols = Math.min(frames,4), rows = Math.ceil(frames/cols), g = 14;
+  const W = cols*5*c+(cols-1)*g+4, H = rows*2*c+(rows-1)*g+4;
+  let s = '';
+  for(let f=0;f<frames;f++){
+    const ox = 2+(f%cols)*(5*c+g), oy = 2+Math.floor(f/cols)*(2*c+g);
+    s += '<rect x="'+ox+'" y="'+oy+'" width="'+(5*c)+'" height="'+(2*c)+'" rx="6" fill="rgba(255,255,255,.04)" stroke="var(--edge)" stroke-width="1.5"/>';
+    for(let i=1;i<5;i++) s += '<line x1="'+(ox+i*c)+'" y1="'+oy+'" x2="'+(ox+i*c)+'" y2="'+(oy+2*c)+'" stroke="var(--edge)"/>';
+    s += '<line x1="'+ox+'" y1="'+(oy+c)+'" x2="'+(ox+5*c)+'" y2="'+(oy+c)+'" stroke="var(--edge)"/>';
+    const inFrame = Math.min(10, n-f*10);
+    for(let d=0; d<inFrame; d++){
+      const cx = ox+(d%5)*c+c/2, cy = oy+Math.floor(d/5)*c+c/2;
+      s += '<circle cx="'+cx+'" cy="'+cy+'" r="7" fill="'+(f%2?'var(--accent2)':'var(--accent)')+'"/>';
+    }
+  }
+  return SVG(W,H,s);
+}
+function svgBaseTen(groups){
+  // groups: [{t,o}] — draws rods and units, '+' between groups
+  const rodW = 16, rodH = 110, gap = 8, unit = 16;
+  let x = 6, s = '', H = rodH+12;
+  groups.forEach((gr,gi)=>{
+    if(gi){ s += '<text x="'+(x+10)+'" y="'+(H/2+10)+'" fill="var(--accent2)" font-size="30" font-family="Space Grotesk,monospace" font-weight="700">+</text>'; x += 42; }
+    for(let i=0;i<gr.t;i++){
+      s += '<rect x="'+x+'" y="6" width="'+rodW+'" height="'+rodH+'" rx="4" fill="var(--accent)" opacity=".95"/>';
+      for(let k=1;k<10;k++) s += '<line x1="'+x+'" y1="'+(6+k*rodH/10)+'" x2="'+(x+rodW)+'" y2="'+(6+k*rodH/10)+'" stroke="rgba(0,0,0,.35)" stroke-width="1.5"/>';
+      x += rodW+gap;
+    }
+    if(gr.t) x += 8;
+    for(let i=0;i<gr.o;i++){
+      const col = Math.floor(i/5), row = i%5;
+      s += '<rect x="'+(x+col*(unit+5))+'" y="'+(6+rodH-unit-row*(unit+5))+'" width="'+unit+'" height="'+unit+'" rx="3" fill="var(--accent2)"/>';
+    }
+    x += gr.o ? Math.ceil(gr.o/5)*(unit+5)+6 : 0;
+  });
+  return SVG(Math.max(x+6,60),H,s);
+}
+function svgClock(h,m,size=200){
+  const r = size/2-6, cx = size/2, cy = size/2;
+  let s = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="rgba(255,255,255,.06)" stroke="var(--ink)" stroke-width="'+(size*.03)+'"/>';
+  for(let i=0;i<60;i++){
+    const a = i*6*Math.PI/180, big = i%5===0, r1 = r*(big?.86:.92);
+    s += '<line x1="'+(cx+Math.sin(a)*r1)+'" y1="'+(cy-Math.cos(a)*r1)+'" x2="'+(cx+Math.sin(a)*r*.97)+'" y2="'+(cy-Math.cos(a)*r*.97)+'" stroke="var(--dim)" stroke-width="'+(big?size*.02:size*.008)+'"/>';
+  }
+  for(let i=1;i<=12;i++){
+    const a = i*30*Math.PI/180, rr = r*.72;
+    s += '<text x="'+(cx+Math.sin(a)*rr)+'" y="'+(cy-Math.cos(a)*rr+size*.04)+'" fill="var(--ink)" font-size="'+(size*.11)+'" text-anchor="middle" font-family="Space Grotesk,monospace" font-weight="700">'+i+'</text>';
+  }
+  const ha = ((h%12)+m/60)*30*Math.PI/180, ma = m*6*Math.PI/180;
+  s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+Math.sin(ha)*r*.48)+'" y2="'+(cy-Math.cos(ha)*r*.48)+'" stroke="var(--ink)" stroke-width="'+(size*.045)+'" stroke-linecap="round"/>';
+  s += '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+Math.sin(ma)*r*.7)+'" y2="'+(cy-Math.cos(ma)*r*.7)+'" stroke="var(--accent)" stroke-width="'+(size*.03)+'" stroke-linecap="round"/>';
+  s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+(size*.03)+'" fill="var(--accent2)"/>';
+  return SVG(size,size,s);
+}
+function svgBars(cats,counts){
+  const W = 440, H = 256, left = 46, bottom = 208, top = 16, maxY = Math.max(5,Math.max(...counts)) , plotH = bottom-top;
+  const bw = 66, gapX = (W-left-20-cats.length*bw)/(cats.length+1);
+  let s = '';
+  for(let v=0;v<=maxY;v++){
+    const y = bottom-v/maxY*plotH;
+    s += '<line x1="'+left+'" y1="'+y+'" x2="'+(W-14)+'" y2="'+y+'" stroke="'+(v?'rgba(255,255,255,.12)':'var(--dim)')+'" stroke-width="'+(v?1:2)+'"/>';
+    s += '<text x="'+(left-8)+'" y="'+(y+6)+'" fill="var(--ink)" font-size="17" text-anchor="end" font-family="Space Grotesk,monospace" font-weight="700">'+v+'</text>';
+  }
+  cats.forEach((c,i)=>{
+    const x = left+gapX*(i+1)+bw*i, hgt = counts[i]/maxY*plotH;
+    s += '<rect x="'+x+'" y="'+(bottom-hgt)+'" width="'+bw+'" height="'+hgt+'" rx="8" fill="'+HUES[i%HUES.length]+'"/>';
+    s += '<text x="'+(x+bw/2)+'" y="'+(bottom+24)+'" font-size="20" text-anchor="middle">'+c.e+'</text>';
+    s += '<text x="'+(x+bw/2)+'" y="'+(bottom+42)+'" fill="var(--ink)" font-size="15" text-anchor="middle" font-family="Baloo 2,sans-serif" font-weight="700">'+c.n+'</text>';
+  });
+  return SVG(W,H,s);
+}
+function htmlPictograph(cats,counts){
+  let h = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;font-size:1rem;max-width:560px">';
+  cats.forEach((c,i)=>{
+    h += '<div style="font-weight:700;color:var(--ink)">'+c.n+'</div><div style="display:flex;flex-wrap:wrap;gap:3px;font-size:1.5rem;line-height:1">'+Array(counts[i]).fill('<span>'+c.e+'</span>').join('')+'</div>';
+  });
+  return h+'</div><div class="small muted" style="text-align:center;margin-top:6px">Each picture = 1 child</div>';
+}
+function svgLengths(items){
+  // items [{name,color,len}], len in units 1..10
+  const W = 460, rowH = 44, H = items.length*rowH+8, unit = 36;
+  let s = '';
+  items.forEach((it,i)=>{
+    const y = 8+i*rowH;
+    s += '<text x="0" y="'+(y+24)+'" fill="var(--ink)" font-size="16" font-family="Baloo 2,sans-serif" font-weight="700">'+(it.label||it.name)+'</text>';
+    s += '<rect x="78" y="'+(y+6)+'" width="'+(it.len*unit)+'" height="24" rx="12" fill="'+it.color+'"/>';
+  });
+  return SVG(W,H,s);
+}
+function svgMeasure(len,name,color){
+  const u = 38, W = len*u+16, H = 100;
+  let s = '<rect x="8" y="10" width="'+(len*u)+'" height="30" rx="12" fill="'+color+'"/>';
+  s += '<text x="'+(8+len*u/2)+'" y="31" fill="#1a1020" font-size="15" text-anchor="middle" font-family="Baloo 2,sans-serif" font-weight="800">'+name+'</text>';
+  for(let i=0;i<len;i++){
+    s += '<rect x="'+(8+i*u)+'" y="52" width="'+(u-4)+'" height="'+(u-4)+'" rx="5" fill="rgba(255,255,255,.08)" stroke="var(--ink)" stroke-width="2"/>';
+  }
+  return SVG(W,H,s);
+}
+/* shapes */
+const SHAPES = {
+  triangle:{n:3,name:'triangle'}, square:{n:4,name:'square'}, rectangle:{n:4,name:'rectangle'},
+  rhombus:{n:4,name:'rhombus'}, trapezoid:{n:4,name:'trapezoid'}, pentagon:{n:5,name:'pentagon'},
+  hexagon:{n:6,name:'hexagon'}, circle:{n:0,name:'circle'}
+};
+const SHAPE_CONFLICT = { square:['rectangle','rhombus'], rectangle:['square'], rhombus:['square'] };
+function shapePts(kind, cx, cy, r){
+  const reg = (n,off)=>Array.from({length:n},(_,i)=>{ const a = off+i*2*Math.PI/n; return [cx+Math.cos(a)*r, cy+Math.sin(a)*r]; });
+  switch(kind){
+    case 'triangle': return reg(3,-Math.PI/2);
+    case 'square': return reg(4,-Math.PI/4);
+    case 'rectangle': return [[cx-r,cy-r*.55],[cx+r,cy-r*.55],[cx+r,cy+r*.55],[cx-r,cy+r*.55]];
+    case 'rhombus': return [[cx,cy-r],[cx+r*.6,cy],[cx,cy+r],[cx-r*.6,cy]];
+    case 'trapezoid': return [[cx-r*.55,cy-r*.55],[cx+r*.55,cy-r*.55],[cx+r,cy+r*.55],[cx-r,cy+r*.55]];
+    case 'pentagon': return reg(5,-Math.PI/2);
+    case 'hexagon': return reg(6,0);
+  }
+  return null;
+}
+function svgShape(kind, o={}){
+  const {fill=pick(HUES), rot=0, size=120, scale=1, open=false} = o;
+  const cx = size/2, cy = size/2, r = size*.4*scale;
+  let body;
+  if(kind === 'circle') body = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'"/>';
+  else if(kind === 'halfcircle') body = '<path d="M'+(cx-r)+' '+cy+' A'+r+' '+r+' 0 0 1 '+(cx+r)+' '+cy+' Z" fill="'+fill+'"/>';
+  else if(kind === 'quartercircle') body = '<path d="M'+cx+' '+cy+' L'+(cx+r)+' '+cy+' A'+r+' '+r+' 0 0 1 '+cx+' '+(cy+r)+' Z" fill="'+fill+'"/>';
+  else {
+    const pts = shapePts(kind,cx,cy,r);
+    if(open){
+      const p = pts.slice(0,pts.length);
+      body = '<polyline points="'+p.map(q=>q.join(',')).join(' ')+'" fill="none" stroke="'+fill+'" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>';
+    } else body = '<polygon points="'+pts.map(q=>q.join(',')).join(' ')+'" fill="'+fill+'"/>';
+  }
+  return SVG(size,size,'<g transform="rotate('+rot+' '+cx+' '+cy+')">'+body+'</g>');
+}
+/* partitions */
+function svgPartition(shape, o={}){
+  // shape: 'circle'|'rect' ; parts: 2|4 ; shade: count shaded ; equal: bool ; style variant
+  const {parts=2, shade=1, equal=true, style=0, size=140, fill=pick(HUES)} = o;
+  const W = shape === 'circle' ? size : size*1.35, H = size, stroke = 'var(--ink)', sw = 4;
+  let s = '';
+  if(shape === 'circle'){
+    const cx = W/2, cy = H/2, r = size*.42;
+    s += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="rgba(255,255,255,.07)" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+    if(parts === 2){
+      const d = equal ? 0 : r*.42, hh = Math.sqrt(r*r-d*d);
+      const x = cx+d;
+      let g = '';
+      if(shade) g += '<path d="M'+x+' '+(cy-hh)+' A'+r+' '+r+' 0 0 1 '+x+' '+(cy+hh)+' Z" fill="'+fill+'"/>';
+      if(shade === 2) g += '<path d="M'+x+' '+(cy-hh)+' A'+r+' '+r+' 0 0 0 '+x+' '+(cy+hh)+' Z" fill="'+fill+'"/>';
+      g += '<line x1="'+x+'" y1="'+(cy-hh)+'" x2="'+x+'" y2="'+(cy+hh)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+      s += style === 1 ? '<g transform="rotate(90 '+cx+' '+cy+')">'+g+'</g>' : g;
+    } else {
+      const quads = [[1,0],[0,1],[-1,0],[0,-1]];
+      for(let i=0;i<Math.min(shade,4);i++){
+        const [ax,ay] = quads[i], [bx,by] = quads[(i+1)%4];
+        s += '<path d="M'+cx+' '+cy+' L'+(cx+ax*r)+' '+(cy+ay*r)+' A'+r+' '+r+' 0 0 1 '+(cx+bx*r)+' '+(cy+by*r)+' Z" fill="'+fill+'"/>';
+      }
+      if(equal){
+        s += '<line x1="'+(cx-r)+'" y1="'+cy+'" x2="'+(cx+r)+'" y2="'+cy+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+        s += '<line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+      } else {
+        s += '<line x1="'+(cx-r)+'" y1="'+cy+'" x2="'+(cx+r)+'" y2="'+cy+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+        s += '<line x1="'+(cx+r*.5)+'" y1="'+(cy-Math.sqrt(r*r-r*r*.25))+'" x2="'+(cx+r*.5)+'" y2="'+(cy+Math.sqrt(r*r-r*r*.25))+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+      }
+    }
+  } else {
+    const x = 8, y = 14, w = W-16, h = H-28;
+    s += '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="rgba(255,255,255,.07)" stroke="'+stroke+'" stroke-width="'+sw+'" rx="4"/>';
+    const cuts = []; const cells = [];
+    if(parts === 2){
+      if(style === 0){ const cx = x+w*(equal?.5:.3); cuts.push(['V',cx]); cells.push([x,y,cx-x,h],[cx,y,x+w-cx,h]); }
+      else if(style === 1){ const cy = y+h*(equal?.5:.32); cuts.push(['H',cy]); cells.push([x,y,w,cy-y],[x,cy,w,y+h-cy]); }
+      else { cuts.push(['D']); cells.push('tri'); }
+    } else {
+      if(style === 0){
+        if(equal){ cuts.push(['V',x+w/2],['H',y+h/2]); cells.push([x,y,w/2,h/2],[x+w/2,y,w/2,h/2],[x,y+h/2,w/2,h/2],[x+w/2,y+h/2,w/2,h/2]); }
+        else { const vx = x+w*.35, hy = y+h*.5; cuts.push(['V',vx],['H',hy]); cells.push([x,y,vx-x,hy-y],[vx,y,x+w-vx,hy-y],[x,hy,vx-x,y+h-hy],[vx,hy,x+w-vx,y+h-hy]); }
+      } else {
+        const fr = equal ? [.25,.5,.75] : [.15,.35,.7];
+        let px = x; const xs = [x, ...fr.map(f=>x+w*f), x+w];
+        for(let i=0;i<4;i++) cells.push([xs[i],y,xs[i+1]-xs[i],h]);
+        fr.forEach(f=>cuts.push(['V',x+w*f]));
+      }
+    }
+    if(cells[0] === 'tri'){
+      if(shade >= 1) s += '<polygon points="'+x+','+y+' '+(x+w)+','+y+' '+(x+w)+','+(y+h)+'" fill="'+fill+'"/>';
+      if(shade >= 2) s += '<polygon points="'+x+','+y+' '+x+','+(y+h)+' '+(x+w)+','+(y+h)+'" fill="'+fill+'"/>';
+      s += '<line x1="'+x+'" y1="'+y+'" x2="'+(x+w)+'" y2="'+(y+h)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+    } else {
+      for(let i=0;i<Math.min(shade,cells.length);i++){ const c = cells[i]; s += '<rect x="'+c[0]+'" y="'+c[1]+'" width="'+c[2]+'" height="'+c[3]+'" fill="'+fill+'"/>'; }
+      for(const c of cuts){
+        if(c[0] === 'V') s += '<line x1="'+c[1]+'" y1="'+y+'" x2="'+c[1]+'" y2="'+(y+h)+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+        else s += '<line x1="'+x+'" y1="'+c[1]+'" x2="'+(x+w)+'" y2="'+c[1]+'" stroke="'+stroke+'" stroke-width="'+sw+'"/>';
+      }
+      s += '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="none" stroke="'+stroke+'" stroke-width="'+sw+'" rx="4"/>';
+    }
+  }
+  return SVG(W,H,s);
+}
+/* composites */
+const COMPOSITES = {
+  sq2tri:  {whole:'square',   pieces:'triangles',     label:'two triangles'},
+  sq2rect: {whole:'square',   pieces:'rectangles',    label:'two rectangles'},
+  rect2sq: {whole:'rectangle',pieces:'squares',       label:'two squares'},
+  hex2trap:{whole:'hexagon',  pieces:'trapezoids',    label:'two trapezoids'},
+  tri2rt:  {whole:'triangle', pieces:'triangles',     label:'two triangles'},
+  circ2half:{whole:'circle',  pieces:'half circles',  label:'two half circles'},
+  circ4q:  {whole:'circle',   pieces:'quarter circles',label:'four quarter circles'},
+  rect2tri:{whole:'rectangle',pieces:'triangles',     label:'two triangles'}
+};
+function svgComposite(kind, o={}){
+  const {size=150, fill=pick(HUES), seam=true} = o;
+  const cx = size/2, cy = size/2, r = size*.4, st = 'stroke="var(--ink)" stroke-width="4" stroke-dasharray="7 6"';
+  let body = '', seams = '';
+  const poly = pts=>'<polygon points="'+pts.map(q=>q.join(',')).join(' ')+'" fill="'+fill+'"/>';
+  switch(kind){
+    case 'sq2tri': body = poly([[cx-r,cy-r],[cx+r,cy-r],[cx+r,cy+r],[cx-r,cy+r]]); seams = '<line x1="'+(cx-r)+'" y1="'+(cy-r)+'" x2="'+(cx+r)+'" y2="'+(cy+r)+'" '+st+'/>'; break;
+    case 'sq2rect': body = poly([[cx-r,cy-r],[cx+r,cy-r],[cx+r,cy+r],[cx-r,cy+r]]); seams = '<line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'" '+st+'/>'; break;
+    case 'rect2sq': body = poly([[cx-r,cy-r/2],[cx+r,cy-r/2],[cx+r,cy+r/2],[cx-r,cy+r/2]]); seams = '<line x1="'+cx+'" y1="'+(cy-r/2)+'" x2="'+cx+'" y2="'+(cy+r/2)+'" '+st+'/>'; break;
+    case 'rect2tri': body = poly([[cx-r,cy-r/2],[cx+r,cy-r/2],[cx+r,cy+r/2],[cx-r,cy+r/2]]); seams = '<line x1="'+(cx-r)+'" y1="'+(cy-r/2)+'" x2="'+(cx+r)+'" y2="'+(cy+r/2)+'" '+st+'/>'; break;
+    case 'hex2trap': body = poly(shapePts('hexagon',cx,cy,r)); seams = '<line x1="'+(cx-r)+'" y1="'+cy+'" x2="'+(cx+r)+'" y2="'+cy+'" '+st+'/>'; break;
+    case 'tri2rt': body = poly([[cx,cy-r],[cx+r,cy+r*.7],[cx-r,cy+r*.7]]); seams = '<line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r*.7)+'" '+st+'/>'; break;
+    case 'circ2half': body = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'"/>'; seams = '<line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'" '+st+'/>'; break;
+    case 'circ4q': body = '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'"/>'; seams = '<line x1="'+cx+'" y1="'+(cy-r)+'" x2="'+cx+'" y2="'+(cy+r)+'" '+st+'/><line x1="'+(cx-r)+'" y1="'+cy+'" x2="'+(cx+r)+'" y2="'+cy+'" '+st+'/>'; break;
+  }
+  return SVG(size,size,body+(seam?seams:''));
+}
+function svgPieces(kind, o={}){
+  const {size=150, fill=pick(HUES)} = o;
+  const W = size*1.3, H = size, cx = W/2, cy = H/2, r = size*.42, g = 7;
+  const poly = pts=>'<polygon points="'+pts.map(q=>q.join(',')).join(' ')+'" fill="'+fill+'" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>';
+  let s = '';
+  switch(kind){
+    case 'sq2tri': s = poly([[cx-r-g,cy-r],[cx-g-r+2*r,cy-r],[cx-r-g,cy+r]]) + poly([[cx+r+g,cy+r],[cx+g+r-2*r,cy+r],[cx+r+g,cy-r]]); break;
+    case 'sq2rect': s = poly([[cx-g-r,cy-r],[cx-g,cy-r],[cx-g,cy+r],[cx-g-r,cy+r]]) + poly([[cx+g,cy-r],[cx+g+r,cy-r],[cx+g+r,cy+r],[cx+g,cy+r]]); break;
+    case 'rect2sq': s = poly([[cx-g-r,cy-r/2],[cx-g,cy-r/2],[cx-g,cy+r/2],[cx-g-r,cy+r/2]]) + poly([[cx+g,cy-r/2],[cx+g+r,cy-r/2],[cx+g+r,cy+r/2],[cx+g,cy+r/2]]); break;
+    case 'rect2tri': s = poly([[cx-g-r,cy-r/2],[cx-g+r,cy-r/2],[cx-g-r,cy+r/2]]) + poly([[cx+g+r,cy+r/2],[cx+g-r,cy+r/2],[cx+g+r,cy-r/2]]); break;
+    case 'hex2trap': { const p = shapePts('hexagon',cx,cy,r); s = poly([p[3],p[4],p[5],p[0]].map(q=>[q[0],q[1]-g])) + poly([p[0],p[1],p[2],p[3]].map(q=>[q[0],q[1]+g])); } break;
+    case 'tri2rt': s = poly([[cx-g,cy-r],[cx-g,cy+r*.7],[cx-g-r,cy+r*.7]]) + poly([[cx+g,cy-r],[cx+g+r,cy+r*.7],[cx+g,cy+r*.7]]); break;
+    case 'circ2half': s = '<path d="M'+(cx-g)+' '+(cy-r)+' A'+r+' '+r+' 0 0 0 '+(cx-g)+' '+(cy+r)+' Z" fill="'+fill+'" stroke="var(--ink)" stroke-width="3"/>' +
+                          '<path d="M'+(cx+g)+' '+(cy-r)+' A'+r+' '+r+' 0 0 1 '+(cx+g)+' '+(cy+r)+' Z" fill="'+fill+'" stroke="var(--ink)" stroke-width="3"/>'; break;
+    case 'circ4q': { const q = (ox,oy,sx,sy)=>'<path d="M'+ox+' '+oy+' L'+(ox+sx*r)+' '+oy+' A'+r+' '+r+' 0 0 '+(sx*sy>0?1:0)+' '+ox+' '+(oy+sy*r)+' Z" fill="'+fill+'" stroke="var(--ink)" stroke-width="3"/>';
+      s = q(cx-g,cy-g,-1,-1)+q(cx+g,cy-g,1,-1)+q(cx-g,cy+g,-1,1)+q(cx+g,cy+g,1,1); } break;
+  }
+  return SVG(W,H,s);
+}
+function emojiGroups(groups, e){
+  // groups: [{n, x}] x = crossed-out count
+  let h = '';
+  groups.forEach((g,i)=>{
+    if(i) h += '<span class="plus">+</span>';
+    h += '<div class="grp">';
+    for(let k=0;k<g.n;k++) h += '<span'+(k >= g.n-(g.x||0) ? ' class="x"' : '')+'>'+e+'</span>';
+    h += '</div>';
+  });
+  return h;
+}
+
+/* ---------- word bank ---------- */
+const NAMES = ['Maya','Leo','Zoe','Amir','Kai','Nia','Sofia','Omar','Priya','Tomas','Aya','Diego','Lena','Ravi','Mei','Jonah','Ines','Yara','Noah','Ada','Sam','Femi','Hana','Luca'];
+const OBJECTS = [
+  {s:'apple',p:'apples',e:'🍎'},{s:'sticker',p:'stickers',e:'⭐'},{s:'marble',p:'marbles',e:'🟣'},{s:'shell',p:'shells',e:'🐚'},
+  {s:'book',p:'books',e:'📚'},{s:'balloon',p:'balloons',e:'🎈'},{s:'cookie',p:'cookies',e:'🍪'},{s:'crayon',p:'crayons',e:'🖍️'},
+  {s:'flower',p:'flowers',e:'🌸'},{s:'block',p:'blocks',e:'🧱'},{s:'toy car',p:'toy cars',e:'🚗'},{s:'bird',p:'birds',e:'🐦'},
+  {s:'frog',p:'frogs',e:'🐸'},{s:'button',p:'buttons',e:'🔘'},{s:'pencil',p:'pencils',e:'✏️'},{s:'coin',p:'coins',e:'🪙'},
+  {s:'leaf',p:'leaves',e:'🍃'},{s:'rock',p:'rocks',e:'🪨'},{s:'strawberry',p:'strawberries',e:'🍓'},{s:'cupcake',p:'cupcakes',e:'🧁'},
+  {s:'kite',p:'kites',e:'🪁'},{s:'fish',p:'fish',e:'🐟'},{s:'duck',p:'ducks',e:'🦆'},{s:'star',p:'stars',e:'🌟'}
+];
+const N = (n,ob)=>n+' '+(n===1?ob.s:ob.p);
+function twoNames(){ const a = pick(NAMES); let b = pick(NAMES); while(b===a) b = pick(NAMES); return [a,b]; }
+const COLORS = [{n:'Red',c:'#ff5d73'},{n:'Blue',c:'#5dc8ff'},{n:'Green',c:'#45e0a0'},{n:'Purple',c:'#c98bff'},{n:'Orange',c:'#ff9b5d'},{n:'Yellow',c:'#ffd166'}];
+const colorOpt = c=>({h:'<span style="display:inline-flex;align-items:center;gap:9px"><i style="width:18px;height:18px;border-radius:50%;background:'+c.c+';display:inline-block"></i>'+c.n+'</span>',v:c.n,cls:'txt'});
+
+/* ---------- helpers for building problems ---------- */
+const eqProblem = (tokens, ans, o={})=>{
+  const {sub, min=0, max=20, prompt='Find the missing number.', spread=4, prefer=[], stim='', stimEmoji=false, hint='', steps=[]} = o;
+  return Object.assign({prompt, eq:eqHtml(tokens,sub), read:prompt+' '+readEq(tokens), stim, stimEmoji, hint, steps}, numOpts(ans,{min,max,spread,prefer}));
+};
+
+/* ============================ 1.OA ============================ */
+function gen_OA_A_1(){
+  const [n1,n2] = twoNames(), ob = pick(OBJECTS), p = ob.p;
+  const type = pick(['addR','addC','addS','takeR','takeC','takeS','putT','apartA','cmpD','cmpF','cmpB','cmpS']);
+  let text, ans, stim = '', hint, steps;
+  switch(type){
+    case 'addR': { const a = ri(1,15), b = ri(1,20-a); ans = a+b;
+      text = n1+' has '+N(a,ob)+'. '+n1+' finds '+b+' more. How many '+p+' does '+n1+' have now?'; stim = emojiGroups([{n:a},{n:b}],ob.e);
+      hint = 'Finding more means adding. Put the two groups together.';
+      steps = S(n1+' starts with '+a+' '+p+'.', n1+' finds '+b+' more, so add.', a+' + '+b+' = '+ans, n1+' has '+ans+' '+p+' now.'); } break;
+    case 'addC': { const a = ri(1,15), c = ri(a+1,20); ans = c-a;
+      text = n1+' had '+N(a,ob)+'. Then '+n1+' got some more. Now '+n1+' has '+N(c,ob)+'. How many '+p+' did '+n1+' get?';
+      hint = 'Count on from '+a+' until you reach '+c+'.';
+      steps = S('Start at '+a+' and count on to '+c+'.', 'Count: '+countStr(a,c-a,1)+'.', 'That is '+ans+' more.', a+' + '+ans+' = '+c+', so '+n1+' got '+ans+' '+p+'.'); } break;
+    case 'addS': { const b = ri(1,15), c = ri(b+1,20); ans = c-b;
+      text = n1+' had some '+p+'. '+n1+' got '+b+' more. Now '+n1+' has '+N(c,ob)+'. How many '+p+' did '+n1+' have at the start?';
+      hint = 'Take away the '+b+' that were added to find the start.';
+      steps = S(n1+' ended with '+c+' '+p+'.', b+' of those were added later, so take them away.', c+' − '+b+' = '+ans, n1+' started with '+ans+' '+p+'.'); } break;
+    case 'takeR': { const a = ri(2,20), b = ri(1,a-1); ans = a-b;
+      text = n1+' has '+N(a,ob)+'. '+n1+' gives '+b+' to '+n2+'. How many '+p+' does '+n1+' have left?'; stim = emojiGroups([{n:a,x:b}],ob.e);
+      hint = 'Giving away means taking away. Cross out '+b+'.';
+      steps = S(n1+' starts with '+a+' '+p+'.', n1+' gives away '+b+', so subtract.', a+' − '+b+' = '+ans, n1+' has '+ans+' '+p+' left.'); } break;
+    case 'takeC': { const a = ri(2,20), c = ri(0,a-1); ans = a-c;
+      text = n1+' had '+N(a,ob)+'. '+n1+' gave some to '+n2+'. Now '+n1+' has '+N(c,ob)+'. How many '+p+' did '+n1+' give away?';
+      hint = 'How far is it from '+c+' back up to '+a+'?';
+      steps = S(n1+' had '+a+' at the start and '+c+' at the end.', 'The difference is what was given away.', a+' − '+c+' = '+ans, n1+' gave away '+ans+' '+p+'.'); } break;
+    case 'takeS': { const b = ri(1,15), c = ri(0,20-b); ans = b+c;
+      text = n1+' had some '+p+'. '+n1+' gave '+b+' to '+n2+'. Now '+n1+' has '+N(c,ob)+'. How many '+p+' did '+n1+' have at the start?';
+      hint = 'Put the ones given away back with the ones left.';
+      steps = S(n1+' has '+c+' left and gave away '+b+'.', 'Put them back together to find the start.', c+' + '+b+' = '+ans, n1+' started with '+ans+' '+p+'.'); } break;
+    case 'putT': { const a = ri(1,15), b = ri(1,20-a); ans = a+b;
+      text = n1+' has '+N(a,ob)+'. '+n2+' has '+N(b,ob)+'. How many '+p+' do they have together?'; stim = emojiGroups([{n:a},{n:b}],ob.e);
+      hint = 'Together means add both groups.';
+      steps = S(n1+' has '+a+' and '+n2+' has '+b+'.', 'Put both groups together.', a+' + '+b+' = '+ans, 'Together they have '+ans+' '+p+'.'); } break;
+    case 'apartA': { const c = ri(3,20), a = ri(1,c-1); ans = c-a;
+      text = n1+' has '+N(c,ob)+'. '+a+' of them are big. The rest are small. How many small '+p+' are there?';
+      hint = 'Take the big ones away from the whole group.';
+      steps = S('There are '+c+' '+p+' in all.', a+' are big, so the rest are small.', c+' − '+a+' = '+ans, 'There are '+ans+' small '+p+'.'); } break;
+    case 'cmpD': { const a = ri(2,20), b = ri(1,a-1); ans = a-b;
+      text = n1+' has '+N(a,ob)+'. '+n2+' has '+N(b,ob)+'. How many more '+p+' does '+n1+' have than '+n2+'?'; stim = emojiGroups([{n:a},{n:b}],ob.e);
+      hint = 'Match them up. How many are left over?';
+      steps = S(n1+' has '+a+' and '+n2+' has '+b+'.', 'Match each of '+n2+"'s "+p+' with one of '+n1+"'s.", 'The extra ones are the difference: '+a+' − '+b+' = '+ans+'.', n1+' has '+ans+' more.'); } break;
+    case 'cmpF': { const a = ri(2,20), b = ri(1,a-1); ans = a-b;
+      text = n1+' has '+N(a,ob)+'. '+n2+' has '+N(b,ob)+'. How many fewer '+p+' does '+n2+' have than '+n1+'?'; stim = emojiGroups([{n:a},{n:b}],ob.e);
+      hint = 'Fewer means the difference between the two groups.';
+      steps = S(n1+' has '+a+' and '+n2+' has '+b+'.', 'Find the difference.', a+' − '+b+' = '+ans, n2+' has '+ans+' fewer.'); } break;
+    case 'cmpB': { const b = ri(1,15), d = ri(1,20-b); ans = b+d;
+      text = n2+' has '+N(b,ob)+'. '+n1+' has '+d+' more '+p+' than '+n2+'. How many '+p+' does '+n1+' have?';
+      hint = 'More than means add '+d+' to '+n2+"'s number.";
+      steps = S(n2+' has '+b+'.', n1+' has '+d+' more than that.', b+' + '+d+' = '+ans, n1+' has '+ans+' '+p+'.'); } break;
+    case 'cmpS': { const a = ri(2,20), d = ri(1,a-1); ans = a-d;
+      text = n1+' has '+N(a,ob)+'. '+n2+' has '+d+' fewer '+p+' than '+n1+'. How many '+p+' does '+n2+' have?';
+      hint = 'Fewer than means take '+d+' away from '+n1+"'s number.";
+      steps = S(n1+' has '+a+'.', n2+' has '+d+' fewer than that.', a+' − '+d+' = '+ans, n2+' has '+ans+' '+p+'.'); } break;
+  }
+  return Object.assign({prompt:text, story:true, read:text, stim, stimEmoji:!!stim, hint, steps}, numOpts(ans,{min:0,max:20}));
+}
+function gen_OA_A_2(){
+  const a = ri(1,10), b = ri(1,Math.min(9,18-a)), c = ri(1,20-a-b), ans = a+b+c;
+  const tenPair = (b+c===10) ? [b,c] : (a+c===10) ? [a,c] : (a+b===10) ? [a,b] : null;
+  const steps = tenPair
+    ? S(tenPair[0]+' + '+tenPair[1]+' = 10, so make that ten first.', '10 + '+(ans-10)+' = '+ans)
+    : S('Add the first two: '+a+' + '+b+' = '+(a+b)+'.', 'Then add the last one: '+(a+b)+' + '+c+' = '+ans+'.');
+  const hint = tenPair ? 'Look for two numbers that make 10.' : 'Add two of the numbers first, then add the third.';
+  if(chance(.35)){
+    const n1 = pick(NAMES), ob = pick([OBJECTS[9],OBJECTS[5],OBJECTS[13],OBJECTS[20],OBJECTS[2],OBJECTS[1]]);
+    const text = n1+' has '+a+' red '+ob.p+', '+b+' blue '+ob.p+', and '+c+' green '+ob.p+'. How many '+ob.p+' does '+n1+' have in all?';
+    return Object.assign({prompt:text, story:true, read:text, stim:emojiGroups([{n:a},{n:b},{n:c}],ob.e), stimEmoji:true, hint, steps:steps.concat(n1+' has '+ans+' '+ob.p+' in all.')}, numOpts(ans,{min:0,max:20}));
+  }
+  return eqProblem([a,'+',b,'+',c,'=','?'], ans, {prompt:'Add all three numbers.', hint, steps});
+}
+function gen_OA_B_3(){
+  const v = ri(0,3);
+  if(v === 0){ const a = ri(1,10), b = ri(1,20-a), s = a+b;
+    return eqProblem([b,'+',a,'=','?'], s, {sub:'You know '+a+' + '+b+' = '+s+'. Switch the order!', prompt:'Use what you know.',
+      hint:'Switching the two numbers does not change the total.', steps:S(a+' + '+b+' = '+s+' is given.', b+' + '+a+' uses the same two numbers in a different order.', 'The total stays the same: '+s+'.')}); }
+  if(v === 1){ const a = ri(1,10), b = ri(1,20-a);
+    const good = b+' + '+a;
+    const bad = [a+' + '+(b+1), (a>=b ? a+' − '+b : b+' − '+a), (a+1)+' + '+b, b+' − '+a].filter(x=>x!==good);
+    return Object.assign({prompt:'Which has the same answer as '+a+' + '+b+'?', read:'Which has the same answer as '+a+' plus '+b+'?',
+      hint:'Look for the same two numbers, just switched.', steps:S(a+' + '+b+' = '+(a+b)+'.', b+' + '+a+' is the same two numbers switched around.', 'So '+b+' + '+a+' = '+(a+b)+' too.')}, textOpts(good, shuffle(bad), 'mono')); }
+  if(v === 2){ const a = ri(1,10), b = ri(1,9), c = 10-b;
+    return eqProblem([a,'+',b,'+',c,'=','?'], a+10, {sub:'Tip: '+b+' + '+c+' make 10.', prompt:'Make a ten to add.',
+      hint:'Add '+b+' and '+c+' first — they make 10.', steps:S(b+' + '+c+' = 10.', 'Now add the ten to '+a+': '+a+' + 10 = '+(a+10)+'.')}); }
+  const a = ri(1,10), b = ri(1,20-a);
+  return eqProblem([a,'+',b,'=',b,'+','?'], a, {sub:'Switching the order keeps the same total.', prompt:'Find the missing number.', max:20,
+    hint:'Both sides must have the same total. Which number is missing on the right?', steps:S('The left side is '+a+' + '+b+' = '+(a+b)+'.', 'The right side must also make '+(a+b)+'.', b+' + '+a+' = '+(a+b)+', so the missing number is '+a+'.')});
+}
+function gen_OA_B_4(){
+  const c = ri(3,20), b = ri(1,c-1), v = ri(0,2), d = c-b;
+  const steps = S('Think of '+c+' − '+b+' as: '+b+' + ? = '+c+'.', 'Count on from '+b+' to '+c+': '+countStr(b,d,1)+'.', 'That is '+d+' more, so the answer is '+d+'.');
+  if(v === 0) return eqProblem([c,'−',b,'=','?'], d, {sub:'Think: '+b+' + ? = '+c, prompt:'Subtract by finding the missing part.', hint:'Ask yourself: '+b+' plus what makes '+c+'?', steps});
+  if(v === 1){
+    const good = b+' + ? = '+c;
+    return Object.assign({prompt:'Which addition fact helps you solve '+c+' − '+b+'?', read:'Which addition fact helps you solve '+c+' minus '+b+'?',
+      hint:'Subtracting '+b+' from '+c+' is like asking what to add to '+b+'.', steps:S(c+' − '+b+' asks: what do I add to '+b+' to get '+c+'?', 'That is the fact '+b+' + ? = '+c+'.', 'The missing part is '+d+', so '+c+' − '+b+' = '+d+'.')},
+      textOpts(good, shuffle([c+' + '+b+' = ?', b+' − ? = '+c, c+' + ? = '+b, (b+1)+' + ? = '+c]), 'mono'));
+  }
+  return eqProblem([b,'+','?','=',c], d, {sub:'This also tells you '+c+' − '+b+'.', prompt:'Find the missing part.', hint:'Count on from '+b+' until you reach '+c+'.', steps});
+}
+function gen_OA_C_5(){
+  const v = ri(0,3);
+  if(v === 0){ const s = ri(0,17), k = ri(1,3), ans = s+k;
+    return Object.assign({prompt:'Start at '+s+'. Count on '+k+'. Where do you land?', read:'Start at '+s+'. Count on '+k+'. What number do you land on?', stim:svgNumberLine(0,20,s),
+      hint:'Put your finger on '+s+' and hop forward '+k+' times.', steps:S('Start at '+s+'.', 'Count on '+k+': '+countStr(s,k,1)+'.', 'You land on '+ans+'. Counting on '+k+' is the same as adding '+k+'.')}, numOpts(ans,{min:0,max:20})); }
+  if(v === 1){ const s = ri(3,20), k = ri(1,3), ans = s-k;
+    return Object.assign({prompt:'Start at '+s+'. Count back '+k+'. Where do you land?', read:'Start at '+s+'. Count back '+k+'. What number do you land on?', stim:svgNumberLine(0,20,s),
+      hint:'Put your finger on '+s+' and hop backward '+k+' times.', steps:S('Start at '+s+'.', 'Count back '+k+': '+countStr(s,k,-1)+'.', 'You land on '+ans+'. Counting back '+k+' is the same as subtracting '+k+'.')}, numOpts(ans,{min:0,max:20})); }
+  if(v === 2){ const s = ri(1,17), k = ri(1,3);
+    return eqProblem([s,'+',k,'=','?'], s+k, {sub:'Count on '+k+' from '+s+'.', prompt:'Count on to add.', stim:svgNumberLine(0,20,s),
+      hint:'Start at the bigger number and count on.', steps:S('Start at '+s+'.', 'Count on '+k+': '+countStr(s,k,1)+'.', s+' + '+k+' = '+(s+k))}); }
+  const s = ri(3,20), k = ri(1,3);
+  return eqProblem([s,'−',k,'=','?'], s-k, {sub:'Count back '+k+' from '+s+'.', prompt:'Count back to subtract.', stim:svgNumberLine(0,20,s),
+    hint:'Start at '+s+' and count back.', steps:S('Start at '+s+'.', 'Count back '+k+': '+countStr(s,k,-1)+'.', s+' − '+k+' = '+(s-k))});
+}
+function gen_OA_C_6(){
+  const v = ri(0,5);
+  if(v === 0){ const within10 = chance(.4); const a = ri(0,within10?10:12), b = ri(0,(within10?10:20)-a), s = a+b;
+    const big = Math.max(a,b), small = Math.min(a,b);
+    const steps = (s > 10 && big < 10 && small > 0)
+      ? S('Make a ten: '+big+' + '+(10-big)+' = 10.', 'That leaves '+(small-(10-big))+' more.', '10 + '+(small-(10-big))+' = '+s)
+      : S('Start at '+big+' and count on '+small+'.', small ? 'Count: '+countStr(big,small,1)+'.' : '', a+' + '+b+' = '+s);
+    return eqProblem([a,'+',b,'=','?'], s, {prompt:'Add.', hint:s>10 ? 'Try making a ten first.' : 'Start at the bigger number and count on.', steps}); }
+  if(v === 1){ const within10 = chance(.4); const c = ri(1,within10?10:20), b = ri(0,c), r = c-b;
+    return eqProblem([c,'−',b,'=','?'], r, {prompt:'Subtract.', hint:'Think: '+b+' + ? = '+c+'.', steps:S('Think of it as a missing part: '+b+' + ? = '+c+'.', r ? 'Count on from '+b+': '+countStr(b,r,1)+'.' : b+' + 0 = '+c+'.', c+' − '+b+' = '+r)}); }
+  if(v === 2){ const a = ri(5,9), b = ri(11-a,9), ten = 10-a;
+    return eqProblem([a,'+',b,'=',a,'+',ten,'+','?'], b-ten, {sub:'Make a ten first: '+a+' + '+ten+' = 10.', prompt:'Fill in the missing number.',
+      hint:'Split '+b+' into '+ten+' and something else.', steps:S(a+' needs '+ten+' more to make 10.', 'Split '+b+' into '+ten+' and '+(b-ten)+'.', 'So '+a+' + '+b+' = '+a+' + '+ten+' + '+(b-ten)+' = 10 + '+(b-ten)+' = '+(a+b)+'.')}); }
+  if(v === 3){ const d = ri(2,9);
+    return eqProblem([d,'+',d+1,'=','?'], 2*d+1, {sub:'You know '+d+' + '+d+' = '+(2*d)+'. Add one more.', prompt:'Use a double to help.',
+      hint:'Start with the double '+d+' + '+d+'.', steps:S('The double: '+d+' + '+d+' = '+(2*d)+'.', d+' + '+(d+1)+' is one more than the double.', (2*d)+' + 1 = '+(2*d+1))}); }
+  if(v === 4){ const a = ri(1,10), b = ri(1,20-a), s = a+b;
+    return eqProblem([s,'−',a,'=','?'], b, {sub:'You know '+a+' + '+b+' = '+s+'.', prompt:'Use the addition fact.',
+      hint:'Addition and subtraction are a family. Use the fact you know.', steps:S(a+' + '+b+' = '+s+' is given.', 'Subtraction undoes addition: taking '+a+' away from '+s+' leaves '+b+'.', s+' − '+a+' = '+b)}); }
+  const c = ri(11,19), b = ri(c-10+1,9), first = c-10, rest = b-first;
+  return eqProblem([c,'−',b,'=','?'], c-b, {sub:'Take away '+first+' to get to 10 first.', prompt:'Get to ten, then subtract the rest.',
+    hint:'Take away enough to land on 10, then take away the rest.', steps:S(c+' − '+first+' = 10.', 'You still need to take away '+rest+' more.', '10 − '+rest+' = '+(c-b), 'So '+c+' − '+b+' = '+(c-b)+'.')});
+}
+function evalTokens(t){ let v = 0, op = '+'; for(const x of t){ if(x==='+'||x==='−') op = x; else v = op==='+' ? v+x : v-x; } return v; }
+function gen_OA_D_7(){
+  const truth = chance(.5), form = ri(0,4);
+  let tokens;
+  const tweak = x=>{ let d = pick([-2,-1,1,2]); if(x+d<0) d = 1; return x+d; };
+  if(form === 0){ const x = ri(0,20); tokens = [x,'=', truth ? x : tweak(x)]; }
+  else if(form === 1){ const a = ri(1,20), b = ri(0,a), r = a-b; tokens = [truth ? r : tweak(r),'=',a,'−',b]; }
+  else if(form === 2){ const a = ri(0,10), b = ri(0,10); tokens = [a,'+',b,'=',b,'+', truth ? a : tweak(a)]; }
+  else if(form === 3){ const a = ri(0,10), b = ri(0,10), s = a+b; let c = ri(0,s), d = s-c; if(!truth) d = tweak(d); tokens = [a,'+',b,'=',c,'+',d]; }
+  else { const a = ri(1,20), b = ri(0,a), r = a-b; tokens = [a,'−',b,'=', truth ? r : tweak(r)]; }
+  const i = tokens.indexOf('='), L = tokens.slice(0,i), Rt = tokens.slice(i+1), lv = evalTokens(L), rv = evalTokens(Rt);
+  const show = t=>t.map(x=>String(x)).join(' ');
+  const side = (name,t,v)=>t.length===1 ? 'The '+name+' side is just '+v+'.' : 'Work out the '+name+' side: '+show(t)+' = '+v+'.';
+  const steps = S(side('left',L,lv), side('right',Rt,rv), truth ? 'Both sides equal '+lv+', so the equation is true.' : lv+' is not the same as '+rv+', so the equation is false.');
+  const opts = [{t:'True',v:true,cls:'txt'},{t:'False',v:false,cls:'txt'}];
+  return Object.assign({prompt:'True or false?', eq:eqHtml(tokens), read:'True or false: '+readEq(tokens), hint:'The equal sign means both sides are the same amount. Work out each side.', steps}, finalize(opts, truth, true));
+}
+function gen_OA_D_8(){
+  const forms = ['a+?=c','?+b=c','a+b=?','c−?=r','?−b=r','c−b=?','r=?−b','c=a+?','?=a+b','r=c−?'];
+  const f = pick(forms);
+  const a = ri(0,20), b = ri(0,20-a), c = a+b;
+  const C = ri(1,20), B = ri(0,C), R = C-B;
+  let tokens, ans, hint, steps;
+  switch(f){
+    case 'a+?=c': tokens = [a,'+','?','=',c]; ans = b; hint = 'Count on from '+a+' up to '+c+'.'; steps = S(a+' plus something makes '+c+'.', 'Count on from '+a+' to '+c+': that is '+b+'.', a+' + '+b+' = '+c); break;
+    case '?+b=c': tokens = ['?','+',b,'=',c]; ans = a; hint = 'What do you add to '+b+' to get '+c+'?'; steps = S('Something plus '+b+' makes '+c+'.', 'Take '+b+' away from '+c+': '+c+' − '+b+' = '+a+'.', a+' + '+b+' = '+c); break;
+    case 'a+b=?': tokens = [a,'+',b,'=','?']; ans = c; hint = 'Just add the two numbers.'; steps = S('Add '+a+' and '+b+'.', a+' + '+b+' = '+c); break;
+    case 'c−?=r': tokens = [C,'−','?','=',R]; ans = B; hint = 'How much do you take from '+C+' to leave '+R+'?'; steps = S(C+' take away something leaves '+R+'.', 'The difference between '+C+' and '+R+' is '+B+'.', C+' − '+B+' = '+R); break;
+    case '?−b=r': tokens = ['?','−',B,'=',R]; ans = C; hint = 'Put '+B+' back with '+R+' to find the start.'; steps = S('Something take away '+B+' leaves '+R+'.', 'Add them back together: '+R+' + '+B+' = '+C+'.', C+' − '+B+' = '+R); break;
+    case 'c−b=?': tokens = [C,'−',B,'=','?']; ans = R; hint = 'Think: '+B+' + ? = '+C+'.'; steps = S('Take '+B+' away from '+C+'.', R ? 'Count on from '+B+' to '+C+': '+R+'.' : B+' + 0 = '+C+'.', C+' − '+B+' = '+R); break;
+    case 'r=?−b': tokens = [R,'=','?','−',B]; ans = C; hint = 'The equal sign can go first. Something minus '+B+' is '+R+'.'; steps = S(R+' is the same as something take away '+B+'.', 'Add them back: '+R+' + '+B+' = '+C+'.', C+' − '+B+' = '+R); break;
+    case 'c=a+?': tokens = [c,'=',a,'+','?']; ans = b; hint = c+' must equal '+a+' plus the missing number.'; steps = S(c+' equals '+a+' plus something.', 'Count on from '+a+' to '+c+': '+b+'.', a+' + '+b+' = '+c); break;
+    case '?=a+b': tokens = ['?','=',a,'+',b]; ans = c; hint = 'The missing number is the total of '+a+' and '+b+'.'; steps = S('The missing number is the same as '+a+' + '+b+'.', a+' + '+b+' = '+c); break;
+    default: tokens = [R,'=',C,'−','?']; ans = B; hint = R+' is what is left after taking something from '+C+'.'; steps = S(R+' is what is left when you take something from '+C+'.', 'The difference between '+C+' and '+R+' is '+B+'.', C+' − '+B+' = '+R);
+  }
+  return eqProblem(tokens, ans, {prompt:'What number makes this true?', hint, steps});
+}
+
+/* ============================ 1.NBT ============================ */
+function gen_NBT_A_1(){
+  const v = ri(0,4);
+  if(v <= 1){
+    let s = chance(.5) ? 10*ri(0,11)+7 : ri(0,116);
+    const cross = ones(s+2)===9 || ones(s)===9 || ones(s+1)===9;
+    if(v === 0){ const tokens = [s,',',s+1,',',s+2,',','?'];
+      return eqProblem(tokens, s+3, {prompt:'What number comes next?', max:120, spread:3, prefer:[s+4,s+13,s+2], hint:'Say the numbers out loud and keep counting.',
+        steps:S('Count on by ones: '+s+', '+(s+1)+', '+(s+2)+'…', cross ? 'After a number ending in 9, the tens go up by one: '+(s+2)+' then '+(s+3)+'.' : 'The next number is one more than '+(s+2)+'.', 'The next number is '+(s+3)+'.')}); }
+    const tokens = [s,',','?',',',s+2,',',s+3];
+    return eqProblem(tokens, s+1, {prompt:'Which number is missing?', max:120, spread:3, prefer:[s+2,s,s+11], hint:'The missing number is one more than '+s+'.',
+      steps:S('The numbers go up by one each time.', 'One more than '+s+' is '+(s+1)+'.', 'Check: '+s+', '+(s+1)+', '+(s+2)+', '+(s+3)+'.')});
+  }
+  if(v === 2){
+    const band = Math.random(); const n = band<.4 ? ri(1,20) : band<.7 ? ri(21,60) : ri(61,120);
+    const full = Math.floor(n/10), rest = n%10;
+    return Object.assign({prompt:'How many dots?', read:'Count the dots. How many are there?', stim:svgTenFrames(n), hint:'Each full frame holds 10. Count by tens, then add the extra dots.',
+      steps:S(full ? 'There are '+full+' full frames. Count by tens: '+Array.from({length:full},(_,i)=>(i+1)*10).join(', ')+'.' : 'No frame is full.', rest ? 'Then count the extra dots: '+rest+'.' : 'There are no extra dots.', full && rest ? (full*10)+' + '+rest+' = '+n : 'That makes '+n+'.', 'There are '+n+' dots.')}, numOpts(n,{min:0,max:120,spread:2,prefer:[n+10,n-10,n+1,n-1]}));
+  }
+  if(v === 3){ const n = ri(0,119); return Object.assign({prompt:'What number comes right after '+n+'?', read:'What number comes right after '+n+'?', eq:eqHtml([n,',','?']), hint:'Right after means one more.',
+    steps:S('One more than '+n+' is '+(n+1)+'.', ones(n)===9 ? 'After '+n+' the tens change: '+(n+1)+'.' : '')}, numOpts(n+1,{min:0,max:120,spread:2,prefer:[n+10,n-1,n+2]})); }
+  const n = ri(1,120); return Object.assign({prompt:'What number comes right before '+n+'?', read:'What number comes right before '+n+'?', eq:eqHtml(['?',',',n]), hint:'Right before means one less.',
+    steps:S('One less than '+n+' is '+(n-1)+'.', ones(n)===0 ? 'Before a number ending in 0, the ones become 9: '+(n-1)+'.' : '')}, numOpts(n-1,{min:0,max:120,spread:2,prefer:[n-10,n+1,n-2]}));
+}
+function gen_NBT_B_2(){
+  const v = ri(0,5);
+  if(v === 0){ const t = ri(1,9), o = ri(0,9), n = 10*t+o;
+    return Object.assign({prompt:'What number do the blocks show?', read:'Count the tens and ones. What number do the blocks show?', stim:svgBaseTen([{t,o}]), hint:'Each tall rod is one ten. Each small cube is one.',
+      steps:S(t+' rods = '+t+' tens = '+(10*t)+'.', o+' cubes = '+o+' ones.', (10*t)+' + '+o+' = '+n)}, numOpts(n,{min:0,max:99,spread:2,prefer:[10*o+t,n+10,n-10,t+o]})); }
+  if(v === 1){ const n = ri(10,99), t = tens(n), o = ones(n);
+    const TO = (a,b)=>a+(a===1?' ten':' tens')+' and '+b+(b===1?' one':' ones');
+    const good = TO(t,o);
+    const bad = [TO(o,t), TO(t,o<9?o+1:o-1), TO(t<9?t+1:t-1,o), (t+o)+' ones'];
+    return Object.assign({prompt:'How many tens and ones make '+n+'?', read:'How many tens and ones make '+n+'?', eq:eqHtml([n]), hint:'The first digit counts tens. The second digit counts ones.',
+      steps:S('The first digit of '+n+' is '+t+': that is '+t+(t===1?' ten':' tens')+', or '+(10*t)+'.', 'The second digit is '+o+': that is '+o+(o===1?' one':' ones')+'.', (10*t)+' + '+o+' = '+n, 'So '+n+' is '+good+'.')}, textOpts(good, shuffle(bad))); }
+  if(v === 2){ const n = ri(11,19);
+    return eqProblem([n,'=',{w:'1 ten and'},'?',{w:'ones'}], n-10, {prompt:'Fill in the ones.', max:9, spread:2, hint:'Take the ten away. What is left?', steps:S(n+' is a ten and some ones.', n+' − 10 = '+(n-10), 'So '+n+' = 1 ten and '+(n-10)+' ones.')}); }
+  if(v === 3){ const n = 10*ri(2,9);
+    return eqProblem([n,'=','?',{w:'tens'}], n/10, {prompt:'How many tens?', min:1, max:9, spread:2, prefer:[n], hint:'Count by tens up to '+n+'.', steps:S('Count by tens: '+Array.from({length:n/10},(_,i)=>(i+1)*10).join(', ')+'.', 'That is '+(n/10)+' tens.', n+' has '+(n/10)+' tens and 0 ones.')}); }
+  if(v === 4){ const t = ri(2,9);
+    return eqProblem([t,{w:'tens'},'=','?'], 10*t, {prompt:'How many is that?', max:99, spread:1, prefer:[t,10*t+10,10*t-10,t+10], hint:'Each ten is 10. Count by tens '+t+' times.', steps:S('Count by tens '+t+' times: '+Array.from({length:t},(_,i)=>(i+1)*10).join(', ')+'.', t+' tens = '+(10*t))}); }
+  const o = ri(1,9);
+  return eqProblem([{w:'1 ten and'},o,{w:'ones'},'=','?'], 10+o, {prompt:'What number is a ten and '+o+' more?', max:20, spread:2, prefer:[o,20+o,10+o+1], hint:'Start at 10 and count on '+o+'.', steps:S('A ten is 10.', '10 and '+o+' more: 10 + '+o+' = '+(10+o)+'.')});
+}
+function gen_NBT_B_3(){
+  let a = ri(10,99), b;
+  const r = Math.random();
+  if(r < .15) b = a; else if(r < .5){ b = 10*tens(a)+ri(0,9); if(b===a) b = a===99 ? 98 : a+1; } else { b = ri(10,99); if(b===a) b = a>10 ? a-1 : a+1; }
+  const ans = a<b ? '<' : a>b ? '>' : '=';
+  const opts = [{t:'<',v:'<',cls:'sym'},{t:'=',v:'=',cls:'sym'},{t:'>',v:'>',cls:'sym'}];
+  const steps = tens(a)!==tens(b)
+    ? S('Compare the tens first: '+a+' has '+tens(a)+' tens and '+b+' has '+tens(b)+' tens.', (tens(a)>tens(b)?a:b)+' has more tens, so it is the bigger number.', a+' '+ans+' '+b)
+    : a===b ? S('Both numbers have '+tens(a)+' tens and '+ones(a)+' ones.', 'They are exactly the same, so use =.', a+' = '+b)
+    : S('Both have '+tens(a)+' tens, so compare the ones: '+ones(a)+' and '+ones(b)+'.', (ones(a)>ones(b)?a:b)+' has more ones, so it is bigger.', a+' '+ans+' '+b);
+  return Object.assign({prompt:'Which sign makes this true?', eq:eqHtml([a,'?',b]), read:'Is '+a+' less than, greater than, or equal to '+b+'?', hint:'Compare the tens first. If they match, compare the ones. The open side of the sign faces the bigger number.', steps}, finalize(opts, ans, true));
+}
+function placeOpts(ans,max){ return numOpts(ans,{min:0,max,spread:12,prefer:shuffle([ans+10,ans-10,ans+1,ans-1]).slice(0,3)}); }
+function gen_NBT_C_4(){
+  const v = ri(0,2);
+  let a, b, sub = '';
+  if(v === 0){
+    if(chance(.5)){ const o = ri(1,9); a = 10*ri(1,8)+o; b = ri(10-o,9); } else { const o = ri(0,8); a = 10*ri(1,9)+o; b = ri(1,9-o); }
+    if(a+b > 100){ a -= 10; }
+  } else if(v === 1){ a = ri(10,89); b = 10*ri(1,Math.floor((100-a)/10)); sub = 'Add the tens.'; }
+  else { a = ri(10,89); b = ri(10,100-a); sub = 'Add tens and tens, ones and ones.'; }
+  const sum = a+b, os = ones(a)+ones(b), ts = tens(a)+tens(b);
+  let steps, hint;
+  if(v === 1){ hint = 'Only the tens change. Count on by tens.'; steps = S(a+' has '+tens(a)+' tens. '+b+' is '+tens(b)+' tens.', tens(a)+' tens + '+tens(b)+' tens = '+ts+' tens.', 'The ones stay '+ones(a)+'. '+(ts*10)+' + '+ones(a)+' = '+sum+'.'); }
+  else { hint = os >= 10 ? 'Add the ones first. If they make 10 or more, you get a new ten.' : 'Add the ones to the ones, and the tens to the tens.';
+    steps = S('Add the ones: '+ones(a)+' + '+ones(b)+' = '+os+'.', os >= 10 ? os+' is 1 ten and '+(os-10)+' ones, so make a new ten.' : '', 'Add the tens: '+(tens(a)*10)+' + '+(tens(b)*10)+(os>=10?' + 10':'')+' = '+(sum-(os>=10?os-10:os))+'.', (sum-(os>=10?os-10:os))+' + '+(os>=10?os-10:os)+' = '+sum); }
+  const stim = chance(.4) ? svgBaseTen([{t:tens(a),o:ones(a)},{t:tens(b),o:ones(b)}]) : '';
+  return Object.assign(eqProblem([a,'+',b,'=','?'], sum, {prompt:'Add.', sub, max:100, stim, hint, steps}), placeOpts(sum,100));
+}
+function gen_NBT_C_5(){
+  const n = ri(10,99), more = chance(.5), ans = more ? n+10 : n-10;
+  const tokens = [{w:more?'10 more than':'10 less than'}, n, '=', '?'];
+  return Object.assign({prompt:'What is 10 '+(more?'more':'less')+' than '+n+'?', eq:eqHtml(tokens), read:'What is 10 '+(more?'more':'less')+' than '+n+'?',
+    hint:'Only the tens digit changes. The ones stay the same.', steps:S(n+' has '+tens(n)+' tens and '+ones(n)+' ones.', '10 '+(more?'more':'less')+' means '+(more?'one more ten':'one less ten')+': '+tens(n)+(more?' + 1':' − 1')+' = '+tens(ans)+' tens.', 'The ones stay '+ones(n)+'. The answer is '+ans+'.')},
+    numOpts(ans,{min:0,max:109,spread:2,prefer:[more?n-10:n+10, n, ans+1, ans-1]}));
+}
+function gen_NBT_C_6(){
+  const a = 10*ri(2,9), b = 10*ri(1,a/10), ans = a-b;
+  const prefer = [ans+10, ans-10, ans/10, ans+20, a+b].filter(x=>x>=0 && x<=100 && x!==ans);
+  return Object.assign({prompt:'Subtract the tens.', eq:eqHtml([a,'−',b,'=','?'], (a/10)+' tens take away '+(b/10)+' tens.'), read:a+' minus '+b+' equals what number?',
+    hint:'Think in tens: '+(a/10)+' tens take away '+(b/10)+' tens.', steps:S(a+' is '+(a/10)+' tens. '+b+' is '+(b/10)+' tens.', (a/10)+' − '+(b/10)+' = '+(ans/10)+' tens.', (ans/10)+' tens = '+ans+'.')}, numOpts(ans,{min:0,max:100,spread:10,prefer:shuffle(prefer)}));
+}
+
+/* ============================ 1.MD ============================ */
+const LEN_OBJ = ['ribbon','rope','string','pencil','snake','train','scarf','stick'];
+function gen_MD_A_1(){
+  const v = ri(0,3), obj = pick(LEN_OBJ);
+  if(v <= 1){
+    const cols = shuffle(COLORS.slice()).slice(0,3), lens = shuffle([ri(2,4),ri(5,6),ri(7,10)]);
+    const items = cols.map((c,i)=>({name:c.n+' '+obj, label:c.n, color:c.c, len:lens[i]}));
+    const lenList = items.map(it=>it.name+' is '+it.len+' units').join(', ');
+    if(v === 0){
+      const longest = chance(.5);
+      const target = items.reduce((m,it)=>longest ? (it.len>m.len?it:m) : (it.len<m.len?it:m), items[0]);
+      const cname = target.name.split(' ')[0];
+      return Object.assign({prompt:'Which '+obj+' is the '+(longest?'longest':'shortest')+'?', read:'Which '+obj+' is the '+(longest?'longest':'shortest')+'?', stim:svgLengths(items),
+        hint:'All the bars start at the same place. Look at where they end.', steps:S('The bars all start on the same line, so compare the ends.', lenList+'.', 'The '+(longest?'longest':'shortest')+' is the '+target.name+'.')}, finalize(cols.map(colorOpt), cname, false));
+    }
+    const sorted = items.slice().sort((x,y)=>x.len-y.len);
+    const good = sorted.map(it=>it.name.split(' ')[0]).join(', ');
+    const perms = []; const [p,q,r] = cols.map(c=>c.n);
+    for(const arr of [[p,q,r],[p,r,q],[q,p,r],[q,r,p],[r,p,q],[r,q,p]]){ const s = arr.join(', '); if(s!==good) perms.push(s); }
+    return Object.assign({prompt:'Put the '+obj+'s in order from shortest to longest.', read:'Put the '+obj+'s in order from shortest to longest.', stim:svgLengths(items),
+      hint:'Find the shortest first, then the next shortest.', steps:S(lenList+'.', 'Shortest first: '+sorted[0].name+' ('+sorted[0].len+').', 'Then '+sorted[1].name+' ('+sorted[1].len+'), then '+sorted[2].name+' ('+sorted[2].len+').', 'Order: '+good+'.')}, textOpts(good, shuffle(perms)));
+  }
+  if(v === 2){
+    const [c1,c2] = shuffle(COLORS.slice()).slice(0,2), mid = pick(['pencil','spoon','crayon','stick']);
+    const longer = chance(.5), w = longer ? 'longer' : 'shorter';
+    const text = 'The '+c1.n.toLowerCase()+' '+obj+' is '+w+' than the '+mid+'. The '+mid+' is '+w+' than the '+c2.n.toLowerCase()+' '+obj+'. Which '+obj+' is '+w+'?';
+    return Object.assign({prompt:text, story:true, read:text, hint:'Use the '+mid+' as a helper to compare the two '+obj+'s.',
+      steps:S(c1.n+' '+obj+' is '+w+' than the '+mid+'.', 'The '+mid+' is '+w+' than the '+c2.n.toLowerCase()+' '+obj+'.', 'So the '+c1.n.toLowerCase()+' '+obj+' is '+w+' than the '+c2.n.toLowerCase()+' '+obj+' too — the '+mid+' sits in between.')}, finalize([colorOpt(c1),colorOpt(c2)], c1.n, false));
+  }
+  const cols = shuffle(COLORS.slice()).slice(0,2), l1 = ri(2,9); let l2 = ri(2,9); if(l2===l1) l2 = l1<9 ? l1+1 : l1-1;
+  const items = [{name:cols[0].n+' '+obj,label:cols[0].n,color:cols[0].c,len:l1},{name:cols[1].n+' '+obj,label:cols[1].n,color:cols[1].c,len:l2}];
+  const longer = chance(.5), target = longer ? (l1>l2?cols[0]:cols[1]) : (l1<l2?cols[0]:cols[1]);
+  return Object.assign({prompt:'Which '+obj+' is '+(longer?'longer':'shorter')+'?', read:'Which '+obj+' is '+(longer?'longer':'shorter')+'?', stim:svgLengths(items),
+    hint:'Both start at the same place. Which one sticks out further?', steps:S(items[0].name+' is '+l1+' units. '+items[1].name+' is '+l2+' units.', 'The '+(longer?'longer':'shorter')+' one is the '+target.n+' '+obj+'.')}, finalize(cols.map(colorOpt), target.n, false));
+}
+function gen_MD_A_2(){
+  const len = ri(2,12), obj = pick([['crayon','#ff5d73'],['pencil','#ffd166'],['spoon','#c98bff'],['leaf','#45e0a0'],['ribbon','#5dc8ff'],['key','#ff9b5d'],['worm','#ff7ab6']]);
+  return Object.assign({prompt:'How many cubes long is the '+obj[0]+'?', read:'How many cubes long is the '+obj[0]+'?', stim:svgMeasure(len,obj[0],obj[1]),
+    hint:'Count the cubes under the '+obj[0]+' one by one, with no gaps.', steps:S('The cubes are all the same size and sit end to end with no gaps.', 'Count them: '+countStr(0,len,1)+'.', 'The '+obj[0]+' is '+len+' cubes long.')}, numOpts(len,{min:1,max:14,spread:2}));
+}
+const timeStr = (h,m)=>h+':'+pad2(m);
+function gen_MD_B_3(){
+  const h = ri(1,12), m = pick([0,30]), v = ri(0,2), h1 = h%12+1, hm1 = (h+10)%12+1;
+  const clockSteps = S('The short hand is the hour hand. It points '+(m?'between '+h+' and '+h1+', so the hour is '+h+'.':'right at '+h+'.'), 'The long hand is the minute hand. It points to '+(m?'6, which means 30 minutes — half past.':'12, which means 0 minutes — o\'clock.'), 'The time is '+timeStr(h,m)+'.');
+  if(v === 0){
+    const good = timeStr(h,m);
+    const bad = shuffle([timeStr(h,m?0:30), timeStr(h1,m), timeStr(hm1,m), m===0 ? timeStr(12,h*5) : timeStr(6,h*5)]).filter(x=>x!==good);
+    return Object.assign({prompt:'What time does the clock show?', read:'What time does the clock show?', stim:svgClock(h,m,210), hint:'Short hand = hour. Long hand on 12 means o\'clock; on 6 means half past.', steps:clockSteps}, textOpts(good, bad, 'mono'));
+  }
+  if(v === 1){
+    const good = {h:svgClock(h,m,120)};
+    const bad = [{h:svgClock(h,m?0:30,120)},{h:svgClock(h1,m,120)},{h:svgClock(hm1,m?0:30,120)}];
+    return Object.assign({prompt:'Which clock shows '+timeStr(h,m)+'?', read:'Which clock shows '+h+(m?' thirty':" o'clock")+'?', vis:true, hint:'Find the clock whose short hand shows '+h+' and long hand points to '+(m?'6':'12')+'.',
+      steps:S(timeStr(h,m)+' means the hour is '+h+' and the minutes are '+pad2(m)+'.', 'The short hand should point '+(m?'between '+h+' and '+h1:'at '+h)+'.', 'The long hand should point to '+(m?'6 for half past.':'12 for o\'clock.'))}, htmlOpts(good, shuffle(bad)));
+  }
+  const good = timeStr(h,30);
+  return Object.assign({prompt:'Which time is half past '+h+'?', read:'Which time is half past '+h+'?', hint:'Half past means 30 minutes after the hour.',
+    steps:S('Half past '+h+' means half an hour after '+h+':00.', 'Half an hour is 30 minutes.', 'We write it '+good+'.')}, textOpts(good, shuffle([timeStr(h,0), timeStr(h1,30), timeStr(h1,0), timeStr(hm1,30)]), 'mono'));
+}
+const SURVEYS = [
+  {q:'Favorite fruit', cats:[{n:'Apples',e:'🍎'},{n:'Bananas',e:'🍌'},{n:'Grapes',e:'🍇'}]},
+  {q:'Favorite pet', cats:[{n:'Dogs',e:'🐶'},{n:'Cats',e:'🐱'},{n:'Fish',e:'🐟'}]},
+  {q:'Favorite sport', cats:[{n:'Soccer',e:'⚽'},{n:'Basketball',e:'🏀'},{n:'Tennis',e:'🎾'}]},
+  {q:'Favorite weather', cats:[{n:'Sunny',e:'☀️'},{n:'Rainy',e:'🌧️'},{n:'Snowy',e:'❄️'}]},
+  {q:'How we get to school', cats:[{n:'Bus',e:'🚌'},{n:'Bike',e:'🚲'},{n:'Walk',e:'🚶'}]},
+  {q:'Favorite treat', cats:[{n:'Cookies',e:'🍪'},{n:'Ice cream',e:'🍦'},{n:'Cupcakes',e:'🧁'}]}
+];
+function gen_MD_C_4(){
+  const sv = pick(SURVEYS), k = chance(.3) ? 2 : 3, cats = shuffle(sv.cats.slice()).slice(0,k);
+  let counts; do { counts = cats.map(()=>ri(1,9)); } while(new Set(counts).size !== counts.length);
+  const isPicto = chance(.4);
+  const stim = isPicto ? htmlPictograph(cats,counts) : svgBars(cats,counts);
+  const v = ri(0,3), total = counts.reduce((x,y)=>x+y,0);
+  const head = sv.q+'. ';
+  const readAll = cats.map((c,i)=>c.n+': '+counts[i]).join(', ');
+  const how = isPicto ? 'Count the pictures in each row.' : 'Read the top of each bar against the numbers on the left.';
+  if(v === 0){ const i = ri(0,k-1);
+    return Object.assign({prompt:head+'How many children chose '+cats[i].n.toLowerCase()+'?', read:head+'How many children chose '+cats[i].n.toLowerCase()+'?', stim, stimEmoji:isPicto, hint:'Find '+cats[i].n+' on the graph. '+how,
+      steps:S('Find '+cats[i].n+'.', how, cats[i].n+' shows '+counts[i]+'.')}, numOpts(counts[i],{min:0,max:12,spread:2})); }
+  if(v === 1){ const most = chance(.5); let idx = 0; counts.forEach((c,i)=>{ if(most ? c>counts[idx] : c<counts[idx]) idx = i; });
+    const opts = cats.map(c=>({t:c.n,v:c.n,cls:'txt'}));
+    return Object.assign({prompt:head+'Which did the '+(most?'most':'fewest')+' children choose?', read:head+'Which did the '+(most?'most':'fewest')+' children choose?', stim, stimEmoji:isPicto, hint:(most?'Look for the tallest bar or longest row.':'Look for the shortest bar or shortest row.'),
+      steps:S(how, readAll+'.', 'The '+(most?'biggest':'smallest')+' number is '+counts[idx]+', so the answer is '+cats[idx].n+'.')}, finalize(opts, cats[idx].n, false)); }
+  if(v === 2){ let i = 0, j = 1; if(counts[i] < counts[j]) [i,j] = [j,i];
+    return Object.assign({prompt:head+'How many more children chose '+cats[i].n.toLowerCase()+' than '+cats[j].n.toLowerCase()+'?', read:head+'How many more children chose '+cats[i].n.toLowerCase()+' than '+cats[j].n.toLowerCase()+'?', stim, stimEmoji:isPicto, hint:'Find both numbers, then subtract the smaller from the bigger.',
+      steps:S(cats[i].n+' shows '+counts[i]+'. '+cats[j].n+' shows '+counts[j]+'.', 'Find the difference.', counts[i]+' − '+counts[j]+' = '+(counts[i]-counts[j]))}, numOpts(counts[i]-counts[j],{min:0,max:12,spread:2,prefer:[counts[i]+counts[j],counts[i],counts[j]]})); }
+  return Object.assign({prompt:head+'How many children answered in all?', read:head+'How many children answered in all?', stim, stimEmoji:isPicto, hint:'Add up every group.',
+    steps:S(readAll+'.', 'Add them all: '+counts.join(' + ')+' = '+total+'.')}, numOpts(total,{min:0,max:30,spread:3}));
+}
+
+/* ============================ 1.G ============================ */
+const POLYS = ['triangle','square','rectangle','rhombus','trapezoid','pentagon','hexagon'];
+const ALL_SHAPES = POLYS.concat(['circle']);
+const shapeFact = k=>k==='circle' ? 'A circle is perfectly round with no straight sides and no corners.' : 'A '+SHAPES[k].name+' has '+SHAPES[k].n+' straight sides and '+SHAPES[k].n+' corners'+(k==='square'?', all the same length, with square corners.':k==='rectangle'?', with square corners and two long sides and two short sides.':'.');
+function shapeOpt(kind,o){ return {h:svgShape(kind,Object.assign({rot:ri(0,359),scale:ri(75,100)/100},o))}; }
+function otherShapes(kind, n, filter){
+  const conf = SHAPE_CONFLICT[kind]||[];
+  const pool = shuffle(ALL_SHAPES.filter(k=>k!==kind && !conf.includes(k) && (!filter || filter(k))));
+  return pool.slice(0,n);
+}
+function gen_G_A_1(){
+  const v = ri(0,4);
+  if(v === 0){ const kind = pick(ALL_SHAPES);
+    const others = otherShapes(kind,3);
+    const bad = others.map(k=>shapeOpt(k));
+    const openTri = kind === 'triangle' && chance(.5);
+    if(openTri) bad[0] = {h:svgShape('triangle',{rot:ri(0,359),open:true})};
+    return Object.assign({prompt:'Which one is a '+SHAPES[kind].name+'?', read:'Which one is a '+SHAPES[kind].name+'?', vis:true, hint:'Count the sides. Color, size, and turning do not matter.',
+      steps:S(shapeFact(kind), 'Color, size, and which way it is turned do not change what a shape is.', openTri ? 'A shape that is not closed is not a triangle.' : '', 'The '+SHAPES[kind].name+' is the one with '+(kind==='circle'?'no sides at all.':SHAPES[kind].n+' sides.'))}, htmlOpts(shapeOpt(kind), bad)); }
+  if(v === 1 || v === 2){ const kind = pick(POLYS), n = SHAPES[kind].n, corners = v===2;
+    return Object.assign({prompt:'How many '+(corners?'corners':'sides')+' does this shape have?', read:'How many '+(corners?'corners':'sides')+' does this shape have?', stim:svgShape(kind,{rot:ri(0,359),size:170}), hint:'Trace around the edge with your finger and count.',
+      steps:S('This is a '+SHAPES[kind].name+'.', 'Go around the edge and count each straight side: '+n+'.', 'A shape has the same number of corners as sides, so it has '+n+' '+(corners?'corners':'sides')+'.')}, numOpts(n,{min:1,max:8,spread:2,prefer:[n+1,n-1,n+2]})); }
+  if(v === 3){ const k = pick([3,4,5,6]); const kind = pick(POLYS.filter(p=>SHAPES[p].n===k));
+    const others = otherShapes(kind,3,x=>SHAPES[x].n!==k);
+    return Object.assign({prompt:'Which shape has '+k+' sides?', read:'Which shape has '+k+' sides?', vis:true, hint:'Count the straight sides on each shape.',
+      steps:S('Count the sides of each shape.', 'Only one has exactly '+k+' sides: the '+SHAPES[kind].name+'.', shapeFact(kind))}, htmlOpts(shapeOpt(kind), others.map(o=>shapeOpt(o)))); }
+  const kind = pick(ALL_SHAPES);
+  const names = otherShapes(kind,3).map(k=>SHAPES[k].name);
+  return Object.assign({prompt:'This shape is turned. What is it?', read:'This shape is turned. What shape is it?', stim:svgShape(kind,{rot:ri(15,345),size:170}), hint:'Turning a shape does not change it. Count the sides.',
+    steps:S('Turn it in your head until it looks familiar.', shapeFact(kind), 'It is a '+SHAPES[kind].name+'.')}, textOpts(SHAPES[kind].name, names));
+}
+function gen_G_A_2(){
+  const v = ri(0,2), fill = pick(HUES);
+  if(v === 0){
+    const kind = pick(Object.keys(COMPOSITES)), pk = COMPOSITES[kind].pieces, whole = COMPOSITES[kind].whole;
+    const others = shuffle(Object.keys(COMPOSITES).filter(k=>COMPOSITES[k].pieces!==pk));
+    const seen = new Set(), bad = [];
+    for(const o of others){ if(bad.length>=3) break; if(seen.has(COMPOSITES[o].pieces)) continue; seen.add(COMPOSITES[o].pieces); bad.push({h:svgPieces(o,{fill:pick(HUES),size:130})}); }
+    return Object.assign({prompt:'Which pieces were put together to make this shape?', read:'Which pieces were put together to make this shape?', stim:svgComposite(kind,{fill,size:180}), vis:true, hint:'The dashed line shows where the pieces meet. What shape is each piece?',
+      steps:S('The dashed line shows the seam between the pieces.', 'Look at each part on its own: each is a '+pk.replace(/s$/,'')+'.', COMPOSITES[kind].label.charAt(0).toUpperCase()+COMPOSITES[kind].label.slice(1)+' make the '+whole+'.')}, htmlOpts({h:svgPieces(kind,{fill,size:130})}, bad)); }
+  if(v === 1){
+    const combos = [['rect2sq','rectangle',['triangle','circle','hexagon']],['sq2tri','square',['circle','hexagon','trapezoid']],['circ2half','circle',['square','triangle','hexagon']],['hex2trap','hexagon',['circle','square','triangle']],['sq2rect','square',['circle','hexagon','triangle']]];
+    const [kind, whole, bads] = pick(combos);
+    return Object.assign({prompt:'Put these '+COMPOSITES[kind].label+' together. What shape can you make?', read:'Put these '+COMPOSITES[kind].label+' together. What shape can you make?', stim:svgPieces(kind,{fill,size:170}), vis:true, hint:'Imagine sliding the pieces until their flat sides touch.',
+      steps:S('Slide the '+COMPOSITES[kind].label+' together so the matching straight sides touch.', 'The new outline has the shape of a '+whole+'.', shapeFact(whole))}, htmlOpts(shapeOpt(whole,{fill}), bads.map(b=>shapeOpt(b)))); }
+  const q = pick([['square','two triangles',['two circles','two hexagons','a circle and a triangle']],['rectangle','two squares',['two circles','a triangle and a circle','two hexagons']],['circle','two half circles',['two squares','two triangles','two trapezoids']],['hexagon','two trapezoids',['two circles','two squares','a circle and a square']]]);
+  return Object.assign({prompt:'Which two pieces can make a '+q[0]+'?', read:'Which two pieces can make a '+q[0]+'?', stim:svgShape(q[0],{fill,size:130}), hint:'Picture cutting the '+q[0]+' in half. What two pieces do you get?',
+    steps:S('Imagine cutting the '+q[0]+' into two matching pieces.', 'Each piece is '+q[1].replace(/^two /,'a ').replace(/s$/,'')+'.', 'So '+q[1]+' can make a '+q[0]+'.')}, textOpts(q[1], q[2]));
+}
+function gen_G_A_3(){
+  const v = ri(0,5), shape = pick(['circle','rect']), fill = pick(HUES);
+  const sname = shape==='circle' ? 'circle' : 'rectangle';
+  if(v === 0){ const parts = pick([2,4]);
+    const style = shape==='circle' ? ri(0,1) : ri(0,parts===2?2:1);
+    const good = parts===2 ? 'one half' : pick(['one fourth','one quarter']);
+    const bad = shuffle(parts===2 ? ['one fourth','the whole','two halves'] : ['one half','the whole','two fourths']);
+    return Object.assign({prompt:'What part of the shape is shaded?', read:'What part of the shape is shaded?', stim:svgPartition(shape,{parts,shade:1,style,fill,size:160}), hint:'Count how many equal parts there are. One of them is shaded.',
+      steps:S('The '+sname+' is cut into '+parts+' equal parts.', '1 of the '+parts+' parts is shaded.', parts===2 ? 'One of two equal parts is one half.' : 'One of four equal parts is one fourth, also called one quarter.')}, textOpts(good, bad)); }
+  if(v === 1 || v === 2){ const wantHalves = v===1, parts = wantHalves ? 2 : 4;
+    const s2 = pick(['circle','rect']);
+    const good = {h:svgPartition(s2,{parts,shade:0,equal:true,style:s2==='circle'?ri(0,1):ri(0,1),fill,size:120})};
+    const bad = shuffle([
+      {h:svgPartition(s2,{parts,shade:0,equal:false,style:s2==='circle'?0:ri(0,1),fill,size:120})},
+      {h:svgPartition(s2,{parts:parts===2?4:2,shade:0,equal:true,style:0,fill,size:120})},
+      {h:svgPartition(s2,{parts:parts===2?4:2,shade:0,equal:false,style:s2==='circle'?0:1,fill,size:120})}
+    ]);
+    return Object.assign({prompt:'Which shape is cut into '+(wantHalves?'halves':'fourths')+'?', read:'Which shape is cut into equal '+(wantHalves?'halves':'fourths')+'?', vis:true, hint:(wantHalves?'Halves are 2 parts':'Fourths are 4 parts')+' that are exactly the same size.',
+      steps:S((wantHalves?'Halves':'Fourths')+' means '+parts+' equal parts — every part the same size.', 'Some shapes have the right number of parts but the parts are not equal.', 'Only one shape has '+parts+' parts that all match.')}, htmlOpts(good, bad)); }
+  if(v === 3){ const parts = pick([2,4]), style = shape==='circle'?ri(0,1):ri(0,parts===2?2:1);
+    const opts = [1,2,3,4].map(n=>({t:String(n),v:n}));
+    return Object.assign({prompt:'How many equal parts?', read:'How many equal parts is this shape cut into?', stim:svgPartition(shape,{parts,shade:0,style,fill,size:160}), hint:'Count every piece inside the shape.',
+      steps:S('Count the pieces: '+parts+'.', 'They are all the same size, so they are equal parts.', parts===2 ? '2 equal parts are called halves.' : '4 equal parts are called fourths or quarters.')}, finalize(opts, parts, true)); }
+  if(v === 4){ const smaller = chance(.5);
+    const stim = '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center">'+svgPartition('circle',{parts:2,shade:1,fill,size:130})+svgPartition('circle',{parts:4,shade:1,fill,size:130})+'</div>';
+    return Object.assign({prompt:'Two same-size pizzas. Which shaded piece is '+(smaller?'smaller':'bigger')+'?', read:'Two pizzas are the same size. One is cut into halves and one into fourths. Which shaded piece is '+(smaller?'smaller':'bigger')+'?', stim, stimEmoji:true, hint:'More cuts means more pieces. What happens to the size of each piece?',
+      steps:S('Both pizzas are the same size.', 'The first is cut into 2 pieces (halves). The second is cut into 4 pieces (fourths).', 'Cutting the same pizza into more pieces makes each piece smaller.', 'So one fourth is smaller than one half'+(smaller?'.':', which means one half is bigger.'))},
+      finalize([{t:'One half',v:'half',cls:'txt'},{t:'One fourth',v:'fourth',cls:'txt'}], smaller?'fourth':'half', true)); }
+  const truth = chance(.5), parts = pick([2,4]);
+  const stim = svgPartition(shape,{parts,shade:0,equal:truth,style:shape==='circle'?0:ri(0,1),fill,size:160});
+  return Object.assign({prompt:'True or false? This shape is cut into equal '+(parts===2?'halves':'fourths')+'.', read:'True or false? This shape is cut into equal '+(parts===2?'halves':'fourths')+'.', stim, hint:'Equal parts must all be the same size.',
+    steps:S('There are '+parts+' parts.', truth ? 'Every part is the same size.' : 'The parts are different sizes — some are bigger than others.', truth ? 'So it is cut into equal '+(parts===2?'halves':'fourths')+': true.' : 'Parts that are not the same size are not '+(parts===2?'halves':'fourths')+': false.')},
+    finalize([{t:'True',v:true,cls:'txt'},{t:'False',v:false,cls:'txt'}], truth, true));
+}
+
+/* ---------- catalogue ---------- */
+const DOMAINS = {
+  OA:{name:'Adding & subtracting', icon:'➕', blurb:'Stories, facts to 20, and equations'},
+  NBT:{name:'Numbers & place value', icon:'🔢', blurb:'Counting to 120, tens and ones, adding to 100'},
+  MD:{name:'Measuring, time & data', icon:'📏', blurb:'Length, clocks, and graphs'},
+  G:{name:'Shapes', icon:'🔷', blurb:'Naming, building, and splitting shapes'}
+};
+const STANDARDS = [
+  {id:'1.OA.A.1', d:'OA', cluster:'Solve problems', kid:'Story problems', desc:'Add and subtract in stories within 20', ex:'Maya has 7 apples and finds 5 more…', gen:gen_OA_A_1},
+  {id:'1.OA.A.2', d:'OA', cluster:'Solve problems', kid:'Add three numbers', desc:'Three numbers with a total up to 20', ex:'3 + 5 + 4 = ?', gen:gen_OA_A_2},
+  {id:'1.OA.B.3', d:'OA', cluster:'Properties of + and −', kid:'Number tricks', desc:'Switch the order, make a ten', ex:'8 + 3 = 11, so 3 + 8 = ?', gen:gen_OA_B_3},
+  {id:'1.OA.B.4', d:'OA', cluster:'Properties of + and −', kid:'Missing part', desc:'Subtract by finding the missing addend', ex:'10 − 8: think 8 + ? = 10', gen:gen_OA_B_4},
+  {id:'1.OA.C.5', d:'OA', cluster:'Add and subtract within 20', kid:'Count on, count back', desc:'Use counting to add and subtract', ex:'Start at 7, count on 2', gen:gen_OA_C_5},
+  {id:'1.OA.C.6', d:'OA', cluster:'Add and subtract within 20', kid:'Fast facts to 20', desc:'Doubles, making ten, related facts', ex:'8 + 6 = ?  13 − 4 = ?', gen:gen_OA_C_6},
+  {id:'1.OA.D.7', d:'OA', cluster:'Equations', kid:'True or false?', desc:'Is the equation true?', ex:'5 + 2 = 2 + 5', gen:gen_OA_D_7},
+  {id:'1.OA.D.8', d:'OA', cluster:'Equations', kid:'Mystery number', desc:'Find the unknown anywhere in the equation', ex:'8 + ? = 11,  5 = ? − 3', gen:gen_OA_D_8},
+  {id:'1.NBT.A.1', d:'NBT', cluster:'Counting', kid:'Count to 120', desc:'Count on, count dots, what comes next', ex:'98, 99, 100, ?', gen:gen_NBT_A_1},
+  {id:'1.NBT.B.2', d:'NBT', cluster:'Place value', kid:'Tens and ones', desc:'What two digits mean', ex:'47 = 4 tens and 7 ones', gen:gen_NBT_B_2},
+  {id:'1.NBT.B.3', d:'NBT', cluster:'Place value', kid:'Which is bigger?', desc:'Compare with <, =, and >', ex:'47 ○ 52', gen:gen_NBT_B_3},
+  {id:'1.NBT.C.4', d:'NBT', cluster:'Add and subtract with place value', kid:'Add to 100', desc:'Two-digit plus one-digit or tens', ex:'36 + 7,  36 + 40', gen:gen_NBT_C_4},
+  {id:'1.NBT.C.5', d:'NBT', cluster:'Add and subtract with place value', kid:'10 more, 10 less', desc:'In your head, no counting', ex:'10 more than 64', gen:gen_NBT_C_5},
+  {id:'1.NBT.C.6', d:'NBT', cluster:'Add and subtract with place value', kid:'Take away tens', desc:'Subtract multiples of 10', ex:'70 − 30 = ?', gen:gen_NBT_C_6},
+  {id:'1.MD.A.1', d:'MD', cluster:'Length', kid:'Longer or shorter?', desc:'Order and compare lengths', ex:'Which ribbon is longest?', gen:gen_MD_A_1},
+  {id:'1.MD.A.2', d:'MD', cluster:'Length', kid:'Measure with cubes', desc:'Count same-size units end to end', ex:'How many cubes long?', gen:gen_MD_A_2},
+  {id:'1.MD.B.3', d:'MD', cluster:'Time', kid:'Tell the time', desc:'Hours and half hours, analog and digital', ex:'What time is it? 3:30', gen:gen_MD_B_3},
+  {id:'1.MD.C.4', d:'MD', cluster:'Data', kid:'Read a graph', desc:'Bar charts and picture graphs', ex:'How many more chose apples?', gen:gen_MD_C_4},
+  {id:'1.G.A.1', d:'G', cluster:'Shapes', kid:'Name that shape', desc:'Sides, corners, and what makes a shape', ex:'Which one is a triangle?', gen:gen_G_A_1},
+  {id:'1.G.A.2', d:'G', cluster:'Shapes', kid:'Build with shapes', desc:'Put shapes together to make new ones', ex:'Two triangles make a…', gen:gen_G_A_2},
+  {id:'1.G.A.3', d:'G', cluster:'Shapes', kid:'Halves and fourths', desc:'Equal shares of circles and rectangles', ex:'What part is shaded?', gen:gen_G_A_3}
+];
+const STD = Object.fromEntries(STANDARDS.map(s=>[s.id,s]));
+/* GEN-END */
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+const R = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const rand = (a,b)=>a+Math.random()*(b-a);
+const $ = id=>document.getElementById(id);
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- storage (works without localStorage too) ---------- */
+const mem = {};
+const store = {
+  get(k,d){ try{ const v = localStorage.getItem('mathnova:'+k); return v == null ? (k in mem ? mem[k] : d) : JSON.parse(v); } catch(e){ return k in mem ? mem[k] : d; } },
+  set(k,v){ mem[k] = v; try{ localStorage.setItem('mathnova:'+k, JSON.stringify(v)); } catch(e){} }
+};
+
+/* ---------- settings & profiles ---------- */
+const DEFAULTS = { sound:true, read:'tap', solutions:'miss', perRound:10, breakEvery:8, breakSecs:30, theme:'random', adaptive:true };
+let settings = Object.assign({}, DEFAULTS, store.get('settings', {})); delete settings.miss;
+const saveSettings = ()=>store.set('settings', settings);
+
+const AVATARS = ['🦊','🐼','🦄','🐸','🐙','🦖','🐧','🦋','🐯','🐨','🦁','🐳','🐝','🦉','🐢','🦜','🐬','🐹'];
+let profiles = store.get('profiles', []);
+let currentId = store.get('current', null);
+function newProfile(name, avatar){
+  return { id:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), name, avatar,
+    skills:STANDARDS.map(s=>s.id), stars:0, score:0, rounds:0, bestStreak:0, arcadeBreaks:0, perfects:0, stats:{}, badges:[],
+    arcade:{gems:0, done:[], skin:'classic', owned:['classic'], totals:{wins:0, gamesPlayed:0}} };
+}
+if(!profiles.length){ profiles.push(newProfile('Player','🦊')); }
+if(!profiles.find(p=>p.id===currentId)) currentId = profiles[0].id;
+function ensureArcade(p){ if(!p.arcade) p.arcade = {gems:0,done:[],skin:'classic',owned:['classic'],totals:{wins:0,gamesPlayed:0}}; if(!p.arcade.totals) p.arcade.totals = {wins:0,gamesPlayed:0}; return p; }
+profiles.forEach(ensureArcade);
+const me = ()=>ensureArcade(profiles.find(p=>p.id===currentId));
+const saveProfiles = ()=>{ store.set('profiles', profiles); store.set('current', currentId); };
+
+/* ---------- themes ---------- */
+const THEMES = {
+  nebula   :{name:'Nebula',   bg:'#100d24',bg2:'#3a2470',ink:'#f5f2ff',dim:'#b3a9dd',accent:'#ffb020',accent2:'#ff5d73',good:'#45e0a0',star:'#d8cfff'},
+  bubblegum:{name:'Bubblegum',bg:'#2a1030',bg2:'#7a2a6a',ink:'#fff3fb',dim:'#e3b6d8',accent:'#ffd166',accent2:'#ff7ab6',good:'#7bf1a8',star:'#ffd9f2'},
+  lagoon   :{name:'Lagoon',   bg:'#06202b',bg2:'#0f5566',ink:'#eafcff',dim:'#9fd0da',accent:'#ffd35c',accent2:'#4fd1c5',good:'#8ef0c0',star:'#d7fbff'},
+  ember    :{name:'Ember',    bg:'#1b0f10',bg2:'#5c2118',ink:'#fff1e6',dim:'#dcb39c',accent:'#ffb347',accent2:'#ff5252',good:'#b8e986',star:'#ffe2c4'},
+  aurora   :{name:'Aurora',   bg:'#071a1f',bg2:'#123d4a',ink:'#eefcf7',dim:'#9fd3c4',accent:'#7cf5c0',accent2:'#c98bff',good:'#ffe27a',star:'#c9fff0'},
+  midnight :{name:'Midnight', bg:'#0b1026',bg2:'#1c2a6b',ink:'#f2f5ff',dim:'#a9b4e6',accent:'#ffd166',accent2:'#ff6b9d',good:'#5ef2b8',star:'#e0e7ff'}
+};
+const themeKeys = Object.keys(THEMES);
+let P = THEMES.nebula;
+function applyTheme(){
+  const key = settings.theme === 'random' ? themeKeys[Math.floor(Math.random()*themeKeys.length)] : (THEMES[settings.theme] ? settings.theme : 'nebula');
+  P = THEMES[key];
+  const s = document.documentElement.style;
+  for(const k of ['bg','bg2','ink','dim','accent','accent2','good']) s.setProperty('--'+k, P[k]);
+  document.querySelector('meta[name=theme-color]').setAttribute('content', P.bg);
+  paintNebula();
+}
+
+/* ---------- canvas plumbing ---------- */
+const dpr = ()=>Math.min(window.devicePixelRatio||1,2);
+function sizeCanvas(cv,keep){
+  const r = cv.getBoundingClientRect(), d = dpr();
+  const W = Math.max(1,Math.round(r.width*d)), H = Math.max(1,Math.round(r.height*d));
+  let snap = null;
+  if(keep && cv.width && cv.height){ snap = document.createElement('canvas'); snap.width = cv.width; snap.height = cv.height; snap.getContext('2d').drawImage(cv,0,0); }
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'); c.setTransform(d,0,0,d,0,0);
+  if(snap) c.drawImage(snap,0,0,snap.width/d,snap.height/d);
+  return {w:r.width,h:r.height,ctx:c};
+}
+function roundRect(c,x,y,w,h,r){
+  r = Math.min(r,Math.abs(w)/2,Math.abs(h)/2);
+  c.beginPath(); c.moveTo(x+r,y); c.arcTo(x+w,y,x+w,y+h,r); c.arcTo(x+w,y+h,x,y+h,r); c.arcTo(x,y+h,x,y,r); c.arcTo(x,y,x+w,y,r); c.closePath();
+}
+function starPath(c,x,y,r,pts){
+  c.beginPath();
+  for(let i=0;i<pts*2;i++){ const a = i*Math.PI/pts-Math.PI/2, rr = i%2 ? r*.45 : r; i ? c.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr) : c.moveTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); }
+  c.closePath();
+}
+
+/* ---------- sound ---------- */
+let AC = null;
+function ac(){ if(!AC) AC = new (window.AudioContext||window.webkitAudioContext)(); if(AC.state === 'suspended') AC.resume(); return AC; }
+function tone(f,o={}){
+  if(!settings.sound) return;
+  const {type='square',d=.12,v=.07,at=0,slide=0} = o;
+  const c = ac(), t = c.currentTime+at, osc = c.createOscillator(), g = c.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(f,t);
+  if(slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40,f*slide),t+d);
+  g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(v,t+.008); g.gain.exponentialRampToValueAtTime(.0007,t+d);
+  osc.connect(g).connect(c.destination); osc.start(t); osc.stop(t+d+.03);
+}
+function noise(d=.3,v=.1,cut=900){
+  if(!settings.sound) return;
+  const c = ac(), n = Math.floor(c.sampleRate*d), b = c.createBuffer(1,n,c.sampleRate), ch = b.getChannelData(0);
+  for(let i=0;i<n;i++) ch[i] = (Math.random()*2-1)*(1-i/n);
+  const s = c.createBufferSource(); s.buffer = b; const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = cut;
+  const g = c.createGain(); g.gain.value = v; s.connect(f).connect(g).connect(c.destination); s.start();
+}
+const SFX = {
+  correct(){ [523.25,659.25,783.99,1046.5].forEach((f,i)=>tone(f,{type:'triangle',d:.19,v:.06,at:i*.07})); },
+  wrong(){ tone(207,{type:'sawtooth',d:.16,v:.05,slide:.75}); tone(155,{type:'sawtooth',d:.28,v:.05,at:.1,slide:.75}); },
+  tap(){ tone(760,{type:'sine',d:.05,v:.035}); },
+  zap(){ tone(1250,{type:'square',d:.05,v:.02,slide:.4}); },
+  pop(){ tone(900,{type:'sine',d:.08,v:.05,slide:1.6}); },
+  boom(){ noise(.34,.09); tone(88,{type:'sawtooth',d:.26,v:.055,slide:.5}); },
+  gate(){ tone(1320,{type:'sine',d:.09,v:.035}); },
+  thrust(){ tone(200,{type:'triangle',d:.07,v:.025,slide:2.2}); },
+  fanfare(){ [659,784,988,1319].forEach((f,i)=>tone(f,{type:'triangle',d:.22,v:.06,at:i*.09})); },
+  streak(){ [880,1108,1318].forEach((f,i)=>tone(f,{type:'square',d:.1,v:.035,at:i*.05})); }
+};
+/* text to speech */
+let voice = null;
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return;
+  const vs = speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+  voice = vs.find(v=>/Samantha|Google US English|Zira|Aria|Jenny|Natural/i.test(v.name)) || vs[0] || null;
+}
+if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text){
+  if(!('speechSynthesis' in window) || settings.read === 'off' || !text) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text.replace(/−/g,' minus ').replace(/\?/g,'?'));
+  if(voice) u.voice = voice; u.rate = .95; u.pitch = 1.05; speechSynthesis.speak(u);
+}
+
+/* ============================================================
+   SKY, FX, SCRATCHPAD
+   ============================================================ */
+const sky = $('sky'); let skyCtx = null, SW = 0, SH = 0; const neb = document.createElement('canvas');
+let stars = [], shooter = null, skyPaused = false;
+function paintNebula(){
+  if(!SW) return;
+  const d = dpr(); neb.width = SW*d; neb.height = SH*d;
+  const c = neb.getContext('2d'); c.setTransform(d,0,0,d,0,0);
+  c.fillStyle = P.bg; c.fillRect(0,0,SW,SH);
+  for(const b of [{x:.18,y:.12,r:.75,col:P.bg2,a:.85},{x:.86,y:.78,r:.7,col:P.accent2,a:.16},{x:.62,y:.05,r:.5,col:P.accent,a:.1}]){
+    const g = c.createRadialGradient(SW*b.x,SH*b.y,0,SW*b.x,SH*b.y,Math.max(SW,SH)*b.r);
+    g.addColorStop(0,b.col); g.addColorStop(1,'transparent'); c.globalAlpha = b.a; c.fillStyle = g; c.fillRect(0,0,SW,SH);
+  }
+  c.globalAlpha = 1;
+  const v = c.createRadialGradient(SW/2,SH/2,Math.min(SW,SH)*.2,SW/2,SH/2,Math.max(SW,SH)*.75);
+  v.addColorStop(0,'transparent'); v.addColorStop(1,'rgba(0,0,0,.55)'); c.fillStyle = v; c.fillRect(0,0,SW,SH);
+}
+function seedStars(){ stars = []; const n = Math.round(clamp((SW*SH)/9000,60,220)); for(let i=0;i<n;i++) stars.push({x:Math.random()*SW,y:Math.random()*SH,z:rand(.25,1),r:rand(.5,1.7),ph:rand(0,6.28)}); }
+function resizeSky(){ const s = sizeCanvas(sky,false); skyCtx = s.ctx; SW = s.w; SH = s.h; paintNebula(); seedStars(); }
+function drawSky(t,dt){
+  const c = skyCtx; if(!c) return;
+  c.clearRect(0,0,SW,SH); c.drawImage(neb,0,0,SW,SH);
+  for(const s of stars){
+    s.y -= s.z*6*dt; if(s.y < -2){ s.y = SH+2; s.x = Math.random()*SW; }
+    c.globalAlpha = clamp(s.z*(R ? 1 : .55+.45*Math.sin(t*1.6+s.ph)),0,1); c.fillStyle = P.star;
+    c.beginPath(); c.arc(s.x,s.y,s.r*s.z,0,6.2832); c.fill();
+  }
+  c.globalAlpha = 1;
+  if(!R){
+    if(!shooter && Math.random() < dt*.1) shooter = {x:rand(SW*.1,SW*.9),y:rand(0,SH*.4),vx:-260,vy:170,life:1};
+    if(shooter){
+      shooter.x += shooter.vx*dt; shooter.y += shooter.vy*dt; shooter.life -= dt*.9;
+      const g = c.createLinearGradient(shooter.x,shooter.y,shooter.x-shooter.vx*.16,shooter.y-shooter.vy*.16);
+      g.addColorStop(0,P.ink); g.addColorStop(1,'transparent');
+      c.globalAlpha = clamp(shooter.life,0,1); c.strokeStyle = g; c.lineWidth = 2; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(shooter.x,shooter.y); c.lineTo(shooter.x-shooter.vx*.16,shooter.y-shooter.vy*.16); c.stroke(); c.globalAlpha = 1;
+      if(shooter.life <= 0) shooter = null;
+    }
+  }
+}
+const fx = $('fx'); let fxCtx = null, FW = 0, FH = 0, bits = [];
+function resizeFx(){ const s = sizeCanvas(fx,false); fxCtx = s.ctx; FW = s.w; FH = s.h; }
+function burst(rect,n=34){
+  const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2, cols = [P.accent,P.accent2,P.good,P.ink];
+  for(let i=0;i<n;i++){ const a = rand(-Math.PI,0), sp = rand(140,470);
+    bits.push({x:cx,y:cy,vx:Math.cos(a)*sp*rand(.5,1.4),vy:Math.sin(a)*sp,r:rand(3,8),rot:rand(0,6.28),vr:rand(-9,9),life:1,col:cols[Math.floor(Math.random()*4)],kind:Math.floor(Math.random()*3)}); }
+}
+function drawFx(dt){
+  const c = fxCtx; if(!c) return; c.clearRect(0,0,FW,FH);
+  for(let i=bits.length-1;i>=0;i--){ const b = bits[i];
+    b.vy += 1150*dt; b.vx *= .992; b.x += b.vx*dt; b.y += b.vy*dt; b.rot += b.vr*dt; b.life -= dt*.62;
+    if(b.life <= 0 || b.y > FH+40){ bits.splice(i,1); continue; }
+    c.save(); c.translate(b.x,b.y); c.rotate(b.rot); c.globalAlpha = clamp(b.life,0,1); c.fillStyle = b.col;
+    if(b.kind === 0){ c.beginPath(); c.arc(0,0,b.r*.7,0,6.2832); c.fill(); } else if(b.kind === 1){ roundRect(c,-b.r,-b.r*.45,b.r*2,b.r*.9,b.r*.3); c.fill(); } else { starPath(c,0,0,b.r*1.15,5); c.fill(); }
+    c.restore(); }
+  c.globalAlpha = 1;
+}
+let last = 0;
+function mainLoop(ts){ const dt = Math.min(.05,(ts-last)/1000 || 0); last = ts; if(!skyPaused) drawSky(ts/1000,dt); drawFx(dt); requestAnimationFrame(mainLoop); }
+
+const board = $('board'); let bCtx = null, tool = 'tap', drawing = false, lastPt = null;
+function resizeBoard(){ bCtx = sizeCanvas(board,true).ctx; strokeStyleUp(); }
+function strokeStyleUp(){
+  if(!bCtx) return; bCtx.lineCap = 'round'; bCtx.lineJoin = 'round';
+  if(tool === 'eraser'){ bCtx.globalCompositeOperation = 'destination-out'; bCtx.lineWidth = 44; bCtx.shadowBlur = 0; bCtx.strokeStyle = '#000'; }
+  else { bCtx.globalCompositeOperation = 'source-over'; bCtx.lineWidth = 5; bCtx.strokeStyle = P.accent; bCtx.shadowBlur = 12; bCtx.shadowColor = P.accent; }
+}
+function setTool(t){
+  tool = t; for(const [id,name] of [['tool-tap','tap'],['tool-pen','pen'],['tool-eraser','eraser']]) $(id).classList.toggle('on',t===name);
+  board.style.pointerEvents = t === 'tap' ? 'none' : 'auto'; strokeStyleUp();
+}
+$('tool-tap').onclick = ()=>setTool('tap'); $('tool-pen').onclick = ()=>setTool('pen'); $('tool-eraser').onclick = ()=>setTool('eraser'); $('tool-wipe').onclick = ()=>wipeBoard();
+function wipeBoard(){ if(bCtx) bCtx.clearRect(0,0,board.width,board.height); }
+board.addEventListener('pointerdown',e=>{ if(tool==='tap') return; drawing = true; lastPt = {x:e.clientX,y:e.clientY}; board.setPointerCapture(e.pointerId); bCtx.beginPath(); bCtx.moveTo(lastPt.x,lastPt.y); bCtx.lineTo(lastPt.x+.01,lastPt.y); bCtx.stroke(); });
+board.addEventListener('pointermove',e=>{ if(!drawing) return; e.preventDefault(); const p = {x:e.clientX,y:e.clientY}; const mx = (lastPt.x+p.x)/2, my = (lastPt.y+p.y)/2; bCtx.beginPath(); bCtx.moveTo(lastPt.x,lastPt.y); bCtx.quadraticCurveTo(lastPt.x,lastPt.y,mx,my); bCtx.stroke(); lastPt = p; });
+board.addEventListener('pointerup',()=>{ drawing = false; }); board.addEventListener('pointercancel',()=>{ drawing = false; });
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+let screen = 'home';
+function show(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on', s.id === 's-'+name));
+  screen = name;
+  if(name !== 'play'){ setTool('tap'); wipeBoard(); }
+  if(name === 'home') renderHome();
+  if(name === 'skills') renderSkills();
+  if(name === 'settings') renderSettings();
+  if(name === 'report') renderReport();
+}
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',()=>show('home')));
+$('go-skills').onclick = ()=>show('skills');
+$('go-settings').onclick = ()=>show('settings');
+$('go-report').onclick = ()=>show('report');
+$('go-arcade').onclick = ()=>openPicker(true);
+$('play').onclick = ()=>startRound();
+$('sum-home').onclick = ()=>show('home');
+$('sum-again').onclick = ()=>startRound();
+$('quit').onclick = ()=>{ if('speechSynthesis' in window) speechSynthesis.cancel(); show('home'); };
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+const BADGES = [
+  {id:'first',   icon:'🚀', name:'Liftoff',       desc:'Finish a round',            test:p=>p.rounds>=1},
+  {id:'streak5', icon:'🔥', name:'On fire',       desc:'5 in a row',                test:p=>p.bestStreak>=5},
+  {id:'streak10',icon:'⚡', name:'Unstoppable',   desc:'10 in a row',               test:p=>p.bestStreak>=10},
+  {id:'perfect', icon:'💯', name:'Perfect round', desc:'Every answer right',        test:p=>p.perfects>=1},
+  {id:'stars50', icon:'🌟', name:'Star collector',desc:'50 stars',                  test:p=>p.stars>=50},
+  {id:'stars200',icon:'🌌', name:'Galaxy',        desc:'200 stars',                 test:p=>p.stars>=200},
+  {id:'explorer',icon:'🧭', name:'Explorer',      desc:'Try every skill',           test:p=>STANDARDS.every(s=>(p.stats[s.id]||{}).n>0)},
+  {id:'arcade',  icon:'🕹️', name:'Arcade regular',desc:'5 arcade breaks',           test:p=>p.arcadeBreaks>=5}
+];
+function checkBadges(p){ const won = []; for(const b of BADGES){ if(!p.badges.includes(b.id) && b.test(p)){ p.badges.push(b.id); won.push(b); } } return won; }
+function badgesHtml(p, only){
+  return BADGES.filter(b=>!only || only.includes(b.id)).map(b=>'<div class="badge '+(p.badges.includes(b.id)?'on':'')+'" title="'+esc(b.desc)+'"><i>'+b.icon+'</i><b>'+esc(b.name)+'</b><span>'+esc(b.desc)+'</span></div>').join('');
+}
+
+/* ============================================================
+   HOME
+   ============================================================ */
+function renderHome(){
+  const p = me();
+  $('players').innerHTML = profiles.map(pr=>'<button class="player '+(pr.id===currentId?'on':'')+'" data-id="'+pr.id+'"><span class="av">'+pr.avatar+'</span>'+esc(pr.name)+'</button>').join('') +
+    (profiles.length < 6 ? '<button class="player add" id="add-player">+ New player</button>' : '');
+  $('players').querySelectorAll('.player[data-id]').forEach(b=>{
+    b.onclick = ()=>{ if(currentId === b.dataset.id) openProfile(b.dataset.id); else { currentId = b.dataset.id; saveProfiles(); renderHome(); } };
+  });
+  const add = $('add-player'); if(add) add.onclick = ()=>openProfile(null);
+  $('home-stats').innerHTML = '<span class="chip mango">★ <b>'+p.stars+'</b></span><span class="chip">Rounds <b>'+p.rounds+'</b></span><span class="chip fire">Best streak <b>'+p.bestStreak+'</b></span>';
+  $('skill-count').textContent = p.skills.length+'/'+STANDARDS.length;
+  $('home-badges').innerHTML = badgesHtml(p);
+}
+
+/* ---------- profile editor ---------- */
+let editingId = null, pmAvatar = '🦊';
+function openProfile(id){
+  editingId = id; const p = id ? profiles.find(x=>x.id===id) : null;
+  $('pm-title').textContent = p ? 'Edit player' : 'New player';
+  $('pm-name').value = p ? p.name : ''; pmAvatar = p ? p.avatar : AVATARS[Math.floor(Math.random()*AVATARS.length)];
+  $('pm-delete').style.visibility = (p && profiles.length > 1) ? 'visible' : 'hidden';
+  renderAvatars(); $('profile-modal').classList.add('on'); setTimeout(()=>$('pm-name').focus(),50);
+}
+function renderAvatars(){ $('pm-avatars').innerHTML = AVATARS.map(a=>'<button class="'+(a===pmAvatar?'on':'')+'" data-a="'+a+'">'+a+'</button>').join(''); $('pm-avatars').querySelectorAll('button').forEach(b=>b.onclick = ()=>{ pmAvatar = b.dataset.a; renderAvatars(); }); }
+$('pm-cancel').onclick = ()=>$('profile-modal').classList.remove('on');
+$('pm-save').onclick = ()=>{
+  const name = $('pm-name').value.trim().slice(0,14) || 'Player';
+  if(editingId){ const p = profiles.find(x=>x.id===editingId); p.name = name; p.avatar = pmAvatar; }
+  else { const p = newProfile(name,pmAvatar); profiles.push(p); currentId = p.id; }
+  saveProfiles(); $('profile-modal').classList.remove('on'); renderHome();
+};
+$('pm-delete').onclick = ()=>{
+  if(!editingId || profiles.length <= 1) return;
+  profiles = profiles.filter(x=>x.id!==editingId); currentId = profiles[0].id; saveProfiles(); $('profile-modal').classList.remove('on'); renderHome();
+};
+$('pm-name').addEventListener('keydown',e=>{ if(e.key==='Enter') $('pm-save').click(); });
+
+/* ============================================================
+   SKILLS
+   ============================================================ */
+const PRESETS = [
+  {name:'Everything', ids:()=>STANDARDS.map(s=>s.id)},
+  {name:'Add & subtract', ids:()=>STANDARDS.filter(s=>s.d==='OA').map(s=>s.id)},
+  {name:'Numbers', ids:()=>STANDARDS.filter(s=>s.d==='NBT').map(s=>s.id)},
+  {name:'Measure & time', ids:()=>STANDARDS.filter(s=>s.d==='MD').map(s=>s.id)},
+  {name:'Shapes', ids:()=>STANDARDS.filter(s=>s.d==='G').map(s=>s.id)},
+  {name:'Quick facts', ids:()=>['1.OA.C.6','1.OA.D.8','1.NBT.C.5','1.NBT.C.6']},
+  {name:'None', ids:()=>[]}
+];
+function renderSkills(){
+  const p = me();
+  $('presets').innerHTML = PRESETS.map((pr,i)=>'<button data-i="'+i+'">'+pr.name+'</button>').join('');
+  $('presets').querySelectorAll('button').forEach(b=>b.onclick = ()=>{ p.skills = PRESETS[+b.dataset.i].ids(); saveProfiles(); renderSkills(); });
+  const check = '<svg viewBox="0 0 16 16" fill="none" stroke="#1a1020" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+  $('domains').innerHTML = Object.entries(DOMAINS).map(([d,info])=>{
+    const list = STANDARDS.filter(s=>s.d===d), sel = list.filter(s=>p.skills.includes(s.id)).length;
+    let rows = '', lastCluster = '';
+    for(const s of list){
+      if(s.cluster !== lastCluster){ rows += '<div class="cluster">'+esc(s.cluster)+'</div>'; lastCluster = s.cluster; }
+      rows += '<label class="check"><input type="checkbox" data-id="'+s.id+'" '+(p.skills.includes(s.id)?'checked':'')+'><span class="box">'+check+'</span><span class="lbl"><b>'+esc(s.kid)+' <span class="tag" style="display:inline">'+s.id+'</span></b><span>'+esc(s.desc)+' · e.g. '+esc(s.ex)+'</span></span></label>';
+    }
+    return '<div class="card domain"><header><div class="ic">'+info.icon+'</div><div class="grow"><h3>'+esc(info.name)+'</h3><div class="small muted">'+sel+' of '+list.length+' selected</div></div><button class="lk" data-d="'+d+'" data-all="1">All</button><button class="lk" data-d="'+d+'" data-all="0">None</button></header>'+rows+'</div>';
+  }).join('');
+  $('domains').querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange = ()=>{
+    if(cb.checked){ if(!p.skills.includes(cb.dataset.id)) p.skills.push(cb.dataset.id); } else p.skills = p.skills.filter(x=>x!==cb.dataset.id);
+    saveProfiles(); updateSkillCounts();
+  });
+  $('domains').querySelectorAll('.lk').forEach(b=>b.onclick = ()=>{
+    const ids = STANDARDS.filter(s=>s.d===b.dataset.d).map(s=>s.id);
+    p.skills = b.dataset.all === '1' ? [...new Set(p.skills.concat(ids))] : p.skills.filter(x=>!ids.includes(x));
+    saveProfiles(); renderSkills();
+  });
+  updateSkillCounts();
+}
+function updateSkillCounts(){
+  const p = me(); $('skills-selected').textContent = p.skills.length;
+  $('domains').querySelectorAll('.domain').forEach((card,i)=>{ const d = Object.keys(DOMAINS)[i]; const list = STANDARDS.filter(s=>s.d===d); card.querySelector('.small').textContent = list.filter(s=>p.skills.includes(s.id)).length+' of '+list.length+' selected'; });
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function segHtml(key, options){
+  return '<div class="seg" data-key="'+key+'">'+options.map(o=>'<button data-v="'+o.v+'" class="'+(String(settings[key])===String(o.v)?'on':'')+'">'+o.l+'</button>').join('')+'</div>';
+}
+function renderSettings(){
+  const rows = [
+    ['Sound effects','Bleeps and fanfares', segHtml('sound',[{v:true,l:'On'},{v:false,l:'Off'}])],
+    ['Read questions aloud','Uses your device\'s voice', segHtml('read',[{v:'auto',l:'Automatically'},{v:'tap',l:'When tapped'},{v:'off',l:'Off'}])],
+    ['Worked solutions','Every question gets two tries. When should the step-by-step solution open by itself?', segHtml('solutions',[{v:'miss',l:'After a miss'},{v:'always',l:'Every question'}])],
+    ['Questions per round','', segHtml('perRound',[{v:8,l:'8'},{v:10,l:'10'},{v:16,l:'16'},{v:24,l:'24'}])],
+    ['Arcade break after','Questions between games', segHtml('breakEvery',[{v:4,l:'4'},{v:8,l:'8'},{v:12,l:'12'},{v:0,l:'Never'}])],
+    ['Arcade break length','', segHtml('breakSecs',[{v:30,l:'30s'},{v:45,l:'45s'},{v:60,l:'60s'}])],
+    ['Practice weak skills more','Picks skills with lower scores more often', segHtml('adaptive',[{v:true,l:'On'},{v:false,l:'Off'}])],
+    ['Sky','', '<div class="seg swatches" data-key="theme">'+[{v:'random',l:'✦'}].concat(themeKeys.map(k=>({v:k,l:''}))).map(o=>'<button data-v="'+o.v+'" title="'+(o.v==='random'?'Shifting sky':THEMES[o.v].name)+'" class="'+(settings.theme===o.v?'on':'')+'" style="background:'+(o.v==='random'?'linear-gradient(135deg,#3a2470,#ff5d73,#ffb020)':'linear-gradient(135deg,'+THEMES[o.v].bg2+','+THEMES[o.v].accent+')')+'">'+o.l+'</button>').join('')+'</div>']
+  ];
+  $('settings-list').innerHTML = rows.map(r=>'<div class="setting"><div class="lbl"><b>'+r[0]+'</b><span>'+r[1]+'</span></div>'+r[2]+'</div>').join('') +
+    '<div class="setting"><div class="lbl"><b>Reset progress for '+esc(me().name)+'</b><span>Clears stars, stats and badges for this player</span></div><button class="btn danger" id="reset-progress">Reset</button></div>' +
+    '<div class="setting"><div class="lbl"><b>About</b><span>Math Nova covers all 21 Common Core Grade 1 math standards. Everything stays on this device — no accounts, no ads, nothing sent anywhere.</span></div></div>';
+  $('settings-list').querySelectorAll('.seg button').forEach(b=>b.onclick = ()=>{
+    const key = b.parentElement.dataset.key; let v = b.dataset.v;
+    if(v === 'true') v = true; else if(v === 'false') v = false; else if(/^\d+$/.test(v)) v = +v;
+    settings[key] = v; saveSettings();
+    if(key === 'theme') applyTheme();
+    if(key === 'sound' && v) SFX.tap();
+    renderSettings();
+  });
+  $('reset-progress').onclick = ()=>{ const p = me(); if(confirm('Reset all progress for '+p.name+'?')){ Object.assign(p,{stars:0,score:0,rounds:0,bestStreak:0,arcadeBreaks:0,perfects:0,stats:{},badges:[]}); p.arcade = {gems:0,done:[],skin:'classic',owned:['classic'],totals:{wins:0,gamesPlayed:0}}; saveProfiles(); renderSettings(); } };
+}
+
+/* ============================================================
+   REPORT
+   ============================================================ */
+function meterHtml(n,c){
+  if(!n) return '<div class="meter"></div><span class="pct muted">—</span>';
+  const pct = Math.round(100*c/n), cls = pct>=80?'':pct>=50?'mid':'low';
+  return '<div class="meter"><i class="'+cls+'" style="width:'+pct+'%"></i></div><span class="pct">'+pct+'%</span>';
+}
+function renderReport(){
+  const p = me(); $('report-player').innerHTML = p.avatar+' '+esc(p.name);
+  let h = '', lastD = '';
+  for(const s of STANDARDS){
+    if(s.d !== lastD){ h += '<h3 style="padding:14px 4px 6px">'+DOMAINS[s.d].icon+' '+esc(DOMAINS[s.d].name)+'</h3>'; lastD = s.d; }
+    const st = p.stats[s.id]||{n:0,c:0};
+    h += '<div class="skillrow"><div class="name"><b>'+esc(s.kid)+'</b><span>'+s.id+' · '+st.c+' of '+st.n+' right first try'+(st.c2?' · '+st.c2+' on second try':'')+'</span></div>'+meterHtml(st.n,st.c)+'</div>';
+  }
+  const tot = Object.values(p.stats).reduce((a,x)=>({n:a.n+x.n,c:a.c+x.c}),{n:0,c:0});
+  $('report-list').innerHTML = '<div class="row" style="padding:4px 4px 8px"><span class="chip">Answered <b>'+tot.n+'</b></span><span class="chip mango">Right <b>'+tot.c+'</b></span><span class="chip">Overall <b>'+(tot.n?Math.round(100*tot.c/tot.n)+'%':'—')+'</b></span></div>'+h;
+}
+
+/* ============================================================
+   ROUND ENGINE
+   ============================================================ */
+let round = null, q = null, answered = false, tries = 0, pendingBreak = false, lastStd = null;
+function startRound(){
+  const p = me();
+  if(!p.skills.length){ show('skills'); return; }
+  if(settings.theme === 'random') applyTheme();
+  round = { i:0, n:settings.perRound, correct:0, second:0, stars:0, streak:0, best:0, results:{}, attempted:0 };
+  pendingBreak = false; lastStd = null;
+  $('round-stars').textContent = '0'; $('streak').textContent = '0';
+  show('play'); nextQuestion();
+}
+function pickStandard(){
+  const p = me(); const pool = STANDARDS.filter(s=>p.skills.includes(s.id));
+  let cands = pool.length > 1 ? pool.filter(s=>s !== lastStd) : pool;
+  if(!settings.adaptive) return lastStd = cands[Math.floor(Math.random()*cands.length)];
+  const w = cands.map(s=>{ const st = p.stats[s.id]; const acc = st && st.n >= 3 ? st.c/st.n : .6; return .6 + 2.2*(1-acc) + (st ? 0 : .6); });
+  let r = Math.random()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<cands.length;i++){ r -= w[i]; if(r <= 0) return lastStd = cands[i]; }
+  return lastStd = cands[cands.length-1];
+}
+function paintPips(){
+  const every = settings.breakEvery; const el = $('pips'); el.innerHTML = '';
+  if(!every) return;
+  const done = round.i % every;
+  for(let i=0;i<every;i++){ const d = document.createElement('i'); if(i < done) d.className = 'on'; el.appendChild(d); }
+  const s = document.createElement('span'); s.textContent = pendingBreak ? 'arcade ready' : (every-done)+' to arcade'; el.appendChild(s);
+}
+function paintTries(){ $('tries').innerHTML = '<i class="'+(tries>=1?'used':'')+'"></i><i class="'+(tries>=2?'used':'')+'"></i>'; }
+function nextQuestion(){
+  if(round.i >= round.n){ endRound(); return; }
+  const std = pickStandard(); q = std.gen(); q.std = std;
+  answered = false; tries = 0;
+  $('prog').style.width = (100*round.i/round.n)+'%';
+  $('q-skill').textContent = std.kid+' · '+std.id;
+  $('speak').style.display = settings.read === 'off' ? 'none' : '';
+  const pr = $('q-prompt'); pr.textContent = q.prompt; pr.className = 'prompt'+(q.story?' story':'');
+  const eq = $('q-eq'); if(q.eq){ eq.innerHTML = q.eq; eq.hidden = false; } else { eq.innerHTML = ''; eq.hidden = true; }
+  const st = $('q-stim'); st.innerHTML = q.stim || ''; st.className = 'stim'+(q.stimEmoji?' emoji':''); st.style.display = q.stim ? '' : 'none';
+  const pad = $('pad'); pad.innerHTML = ''; pad.dataset.n = q.options.length; pad.classList.toggle('vis', !!q.vis);
+  q.options.forEach((o,i)=>{
+    const b = document.createElement('button'); b.className = 'opt'+(o.cls?' '+o.cls:'')+(q.vis?' vis':''); b.dataset.i = i;
+    if(o.h) b.innerHTML = o.h; else b.textContent = o.t;
+    b.setAttribute('aria-label', o.t ? o.t : 'choice '+(i+1));
+    b.onclick = ()=>answer(i); pad.appendChild(b);
+  });
+  $('hint').textContent = ''; $('hint').className = 'hint';
+  $('hintbox').hidden = true; $('hint-text').textContent = q.hint || '';
+  $('hint-btn').style.display = q.hint ? '' : 'none';
+  $('solution').hidden = true; $('sol-toggle').hidden = true; $('sol-steps').innerHTML = '';
+  $('next-btn').disabled = true;
+  paintPips(); paintTries();
+  $('qcard').scrollTop = 0;
+  if(settings.read === 'auto') setTimeout(()=>speak(q.read),150);
+}
+$('speak').onclick = ()=>{ if(q) speak(q.read); };
+$('hint-btn').onclick = ()=>{ if(!q) return; $('hintbox').hidden = !$('hintbox').hidden; if(!$('hintbox').hidden){ SFX.tap(); if(settings.read === 'auto') speak(q.hint); } };
+function showSolution(open){
+  $('sol-steps').innerHTML = (q.steps||[]).map(t=>'<li><span>'+t+'</span></li>').join('');
+  if(open){ $('solution').hidden = false; $('sol-toggle').hidden = true; setTimeout(()=>$('solution').scrollIntoView({behavior:R?'auto':'smooth',block:'nearest'}),60); }
+  else { $('solution').hidden = true; $('sol-toggle').hidden = false; }
+}
+$('sol-toggle').onclick = ()=>{ $('solution').hidden = false; $('sol-toggle').hidden = true; SFX.tap(); setTimeout(()=>$('solution').scrollIntoView({behavior:R?'auto':'smooth',block:'nearest'}),30); };
+function record(std, first, second){
+  const p = me(); const st = p.stats[std.id] || (p.stats[std.id] = {n:0,c:0,c2:0}); st.n++; if(first) st.c++; if(second) st.c2 = (st.c2||0)+1;
+  const rr = round.results[std.id] || (round.results[std.id] = {n:0,c:0}); rr.n++; if(first) rr.c++;
+  round.attempted++;
+}
+function answerText(o){ return o.t !== undefined ? o.t : 'the picture'; }
+function fillSlot(){ const slot = $('slot'); if(slot){ slot.textContent = answerText(q.options[q.answer]); slot.classList.remove('wait'); slot.classList.add('done'); } }
+function answer(i){
+  if(answered) return;
+  const btn = $('pad').children[i], ok = i === q.answer;
+  const p = me();
+  tries++; paintTries();
+  if(ok){
+    answered = true; SFX.correct(); btn.classList.add('hit'); fillSlot();
+    const first = tries === 1;
+    record(q.std, first, !first);
+    if(first){
+      round.correct++; round.stars++; round.streak++; round.best = Math.max(round.best,round.streak);
+      p.stars++; p.score += 100 + Math.min(50,(round.streak-1)*10); p.bestStreak = Math.max(p.bestStreak,round.streak);
+      $('round-stars').textContent = round.stars; $('streak').textContent = round.streak;
+      burst(btn.getBoundingClientRect());
+      if(round.streak >= 5 && round.streak % 5 === 0){ SFX.streak(); burst($('streak-chip').getBoundingClientRect(),20); }
+      $('hint').textContent = pick(['Correct!','Nice work!','You got it!','Brilliant!','Exactly right!','First try!']);
+      showSolution(settings.solutions === 'always');
+    } else {
+      round.second++;
+      $('hint').textContent = 'You got it on the second try. Here is how it works:';
+      showSolution(true);
+    }
+    $('hint').className = 'hint good';
+    if(!R) $('qcard').animate([{transform:'scale(1)'},{transform:'scale(1.02)'},{transform:'scale(1)'}],{duration:420,easing:'cubic-bezier(.34,1.56,.64,1)'});
+    for(const b of $('pad').children) if(b !== btn) b.disabled = true;
+    saveProfiles();
+  } else {
+    SFX.wrong(); btn.classList.add('miss'); btn.disabled = true;
+    if(!R) $('qcard').animate([{transform:'translateX(0)'},{transform:'translateX(-8px)'},{transform:'translateX(8px)'},{transform:'translateX(-4px)'},{transform:'translateX(0)'}],{duration:360,easing:'ease-in-out'});
+    if(tries === 1){
+      round.streak = 0; $('streak').textContent = '0';
+      $('hint').textContent = 'Not quite. You have one more try.'; $('hint').className = 'hint bad';
+      if(q.hint){ $('hintbox').hidden = false; }
+      return;                                             // second attempt still open — Next stays locked
+    }
+    answered = true; record(q.std,false,false);
+    for(const b of $('pad').children) b.disabled = true;
+    const good = $('pad').children[q.answer]; good.classList.add('reveal'); good.disabled = false; good.onclick = null;
+    fillSlot();
+    const t = q.options[q.answer].t;
+    $('hint').textContent = t !== undefined ? 'The answer was '+t+'. Here is how to find it:' : 'The right one is outlined in green. Here is why:';
+    $('hint').className = 'hint bad';
+    showSolution(true);
+    saveProfiles();
+  }
+  $('next-btn').disabled = false;
+}
+function nextProblem(){
+  if(!round || screen !== 'play') return;
+  if($('next-btn').disabled) return;
+  if('speechSynthesis' in window) speechSynthesis.cancel();
+  round.i++;
+  if(settings.breakEvery && round.i % settings.breakEvery === 0 && round.i < round.n) pendingBreak = true;
+  if(pendingBreak){ pendingBreak = false; startBreak(false); return; }
+  nextQuestion();
+}
+$('next-btn').onclick = nextProblem;
+
+function endRound(){
+  const p = me(); p.rounds++;
+  if(round.attempted && round.correct === round.attempted && round.attempted >= 5){ p.perfects = (p.perfects||0)+1; }
+  const won = checkBadges(p); saveProfiles();
+  const acc = round.attempted ? Math.round(100*round.correct/round.attempted) : 0;
+  const acc2 = round.attempted ? Math.round(100*(round.correct+round.second)/round.attempted) : 0;
+  $('sum-title').textContent = acc === 100 && round.attempted ? 'Perfect round!' : acc >= 80 ? 'Great round!' : acc >= 50 ? 'Good work!' : 'Keep going!';
+  const r = 62, circ = 2*Math.PI*r;
+  $('ring').innerHTML = '<svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="'+r+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="12"/><circle cx="75" cy="75" r="'+r+'" fill="none" stroke="var(--good)" stroke-width="12" stroke-linecap="round" stroke-dasharray="'+circ+'" stroke-dashoffset="'+(circ*(1-acc/100))+'" style="transition:stroke-dashoffset 1s ease"/></svg><div><b>'+acc+'%</b><small>'+round.correct+' of '+round.attempted+' first try'+(round.second?'<br>'+acc2+'% with second tries':'')+'</small></div>';
+  $('sum-stats').innerHTML = '<span class="chip mango">★ <b>+'+round.stars+'</b></span>'+(round.second?'<span class="chip">2nd try <b>'+round.second+'</b></span>':'')+'<span class="chip fire">Best streak <b>'+round.best+'</b></span><span class="chip">Total stars <b>'+p.stars+'</b></span>';
+  $('sum-skills').innerHTML = Object.entries(round.results).map(([id,r])=>{ const s = STD[id]; return '<div class="skillrow"><div class="name"><b>'+esc(s.kid)+'</b><span>'+id+'</span></div>'+meterHtml(r.n,r.c)+'</div>'; }).join('') || '<p class="muted" style="margin:0">No questions answered.</p>';
+  $('sum-badges').innerHTML = won.length ? '<div style="width:100%;text-align:center" class="small muted">New badge'+(won.length>1?'s':'')+'!</div>'+badgesHtml(p, won.map(b=>b.id)) : '';
+  show('summary');
+  if(acc >= 80) { SFX.fanfare(); burst({left:innerWidth/2-40,top:innerHeight*.3,width:80,height:80},70); } else SFX.correct();
+}
+/* ============================================================
+   ARCADE — six games on one dpr-aware canvas. All sizes in `u`
+   (1/100 of the shorter axis) so games keep proportion anywhere.
+   ============================================================ */
+const mg = $('mg');
+const A = { ctx:null, w:0, h:0, u:0, t:0, dt:0, over:false, score:0, key:'comet', s:{}, ot:'', os:'', free:false, run:{}, qt:0 };
+const keys = {};
+const best = store.get('best', { comet:0, defender:0, overdrive:0, grid:0, bubbles:0, catcher:0 });
+let mgRAF = null, mgLast = 0, breakTimer = null, breakLeft = 30, breakTotal = 30;
+
+const INFO = {
+  comet:    {icon:'🚀', name:'Comet Rider',   say:'Tap the screen or press Space to fire the thruster. Glide through the gaps in the ice gates.', blurb:'Fly through the gates'},
+  defender: {icon:'🛸', name:'Star Defender', say:'Slide your finger, or use the arrow keys, to steer. Your cannons fire on their own — break the asteroids before they reach you.', blurb:'Blast the asteroids'},
+  overdrive:{icon:'🏁', name:'Overdrive',     say:'Steer with your finger or the arrow keys. Weave past the rival racers; the track speeds up the longer you last.', blurb:'Dodge the racers'},
+  grid:     {icon:'⭕', name:'Grid Duel',     say:'Tap a square to place your mark. Line up three before the computer does.', blurb:'Three in a row'},
+  bubbles:  {icon:'🫧', name:'Bubble Blitz',  say:'Pop the bubbles before they float away. Gold bubbles are worth five!', blurb:'Pop them all'},
+  catcher:  {icon:'🧺', name:'Star Catcher',  say:'Slide the basket to catch falling stars. Watch out for rocks — three hits and the basket breaks.', blurb:'Catch the stars'}
+};
+
+
+/* ---------------- progression: quests · gems · ranks · skins ---------------- */
+const SKINS = [
+  {id:'classic',name:'Classic',cost:0,   body:null,     trim:null},
+  {id:'ember',  name:'Ember',  cost:40,  body:'#ff9b5d',trim:'#ff5252'},
+  {id:'mint',   name:'Mint',   cost:80,  body:'#7bf1a8',trim:'#0f5566'},
+  {id:'violet', name:'Violet', cost:140, body:'#c98bff',trim:'#ffd166'},
+  {id:'solar',  name:'Solar',  cost:250, body:'#ffd166',trim:'#ff5d73'},
+  {id:'ghost',  name:'Ghost',  cost:400, body:'#eafcff',trim:'#4fd1c5'}
+];
+const RANKS = [[0,'Cadet'],[60,'Pilot'],[150,'Captain'],[300,'Commander'],[600,'Admiral'],[1000,'Legend']];
+const QUESTS = [
+  {id:'c1',g:'comet',    name:'Pass 5 gates',                 need:5,  stat:'score',  gems:15},
+  {id:'c2',g:'comet',    name:'Pass 15 gates',                need:15, stat:'score',  gems:40},
+  {id:'c3',g:'comet',    name:'Fly for 30 seconds',           need:30, stat:'time',   gems:25},
+  {id:'d1',g:'defender', name:'Blast 5 asteroids',            need:5,  stat:'kills',  gems:15},
+  {id:'d2',g:'defender', name:'Blast 20 asteroids',           need:20, stat:'kills',  gems:40},
+  {id:'d3',g:'defender', name:'Survive 45 seconds',           need:45, stat:'time',   gems:30},
+  {id:'o1',g:'overdrive',name:'Pass 10 racers',               need:10, stat:'score',  gems:15},
+  {id:'o2',g:'overdrive',name:'Pass 30 racers',               need:30, stat:'score',  gems:40},
+  {id:'o3',g:'overdrive',name:'Drive for 40 seconds',         need:40, stat:'time',   gems:30},
+  {id:'g1',g:'grid',     name:'Win a duel',                   need:1,  stat:'wins',   gems:20, cum:true},
+  {id:'g2',g:'grid',     name:'Win 3 duels',                  need:3,  stat:'wins',   gems:40, cum:true},
+  {id:'g3',g:'grid',     name:'Win with only 3 marks',        need:1,  stat:'fastwin',gems:35},
+  {id:'b1',g:'bubbles',  name:'Pop 20 bubbles',               need:20, stat:'pops',   gems:15},
+  {id:'b2',g:'bubbles',  name:'Pop 3 gold bubbles',           need:3,  stat:'gold',   gems:25},
+  {id:'b3',g:'bubbles',  name:'Pop 60 bubbles',               need:60, stat:'pops',   gems:45},
+  {id:'k1',g:'catcher',  name:'Catch 15 stars',               need:15, stat:'score',  gems:15},
+  {id:'k2',g:'catcher',  name:'Catch 10 in a row, no rocks',  need:10, stat:'clean',  gems:30},
+  {id:'k3',g:'catcher',  name:'Catch 40 stars',               need:40, stat:'score',  gems:45}
+];
+const rankOf = gems=>{ let r = RANKS[0]; for(const x of RANKS) if(gems >= x[0]) r = x; return r[1]; };
+const nextRank = gems=>RANKS.find(x=>x[0] > gems);
+function skinCols(){ const p = me(), sk = SKINS.find(x=>x.id===p.arcade.skin) || SKINS[0]; return {body:sk.body||P.ink, trim:sk.trim||P.accent2}; }
+function questProgress(qd){ const p = me(); if(qd.cum) return p.arcade.totals[qd.stat]||0; if(qd.stat === 'score') return A.score; return A.run[qd.stat]||0; }
+let toastT = null, toastQ = [];
+function toast(msg){
+  toastQ.push(msg); if(toastT) return;
+  const next = ()=>{ if(!toastQ.length){ toastT = null; return; } const el = $('toast'); el.innerHTML = toastQ.shift(); el.classList.add('on'); toastT = setTimeout(()=>{ el.classList.remove('on'); toastT = setTimeout(next,350); },2400); };
+  next();
+}
+function checkQuests(){
+  const p = me(); let won = false;
+  for(const qd of QUESTS){
+    if(qd.g !== A.key || p.arcade.done.includes(qd.id)) continue;
+    if(questProgress(qd) >= qd.need){
+      p.arcade.done.push(qd.id); const before = rankOf(p.arcade.gems); p.arcade.gems += qd.gems; won = true;
+      toast('🏅 Quest complete: '+qd.name+' &nbsp;<b style="color:var(--accent)">+'+qd.gems+' 💎</b>');
+      if(rankOf(p.arcade.gems) !== before) toast('⭐ Rank up! You are now a <b>'+rankOf(p.arcade.gems)+'</b>');
+    }
+  }
+  if(won){ SFX.fanfare(); saveProfiles(); }
+  renderQuests(); renderArcadeHead();
+}
+function renderArcadeHead(){ const p = me(); $('mg-rank').textContent = rankOf(p.arcade.gems); $('mg-gems').textContent = p.arcade.gems; }
+function questCard(qd){
+  const p = me(), done = p.arcade.done.includes(qd.id), prog = done ? qd.need : Math.min(qd.need, questProgress(qd));
+  return '<div class="quest '+(done?'done':'')+'"><div class="qt"><b>'+qd.name+'</b><span>'+(done?'✓ done':prog+' / '+qd.need+' · '+qd.gems+' 💎')+'</span></div><div class="qb"><i style="width:'+Math.round(100*prog/qd.need)+'%"></i></div></div>';
+}
+function renderQuests(){ $('mg-quests').innerHTML = QUESTS.filter(q=>q.g===A.key).map(questCard).join(''); }
+function renderHangar(){
+  const p = me();
+  $('hangar').innerHTML = SKINS.map(sk=>{
+    const owned = p.arcade.owned.includes(sk.id), on = p.arcade.skin === sk.id;
+    const body = sk.body||P.ink, trim = sk.trim||P.accent2;
+    const btn = on ? '<button disabled>In use</button>' : owned ? '<button data-use="'+sk.id+'">Use</button>' : '<button class="buy" data-buy="'+sk.id+'" '+(p.arcade.gems<sk.cost?'disabled':'')+'>Unlock · '+sk.cost+' 💎</button>';
+    return '<div class="skin '+(on?'on':'')+'"><div class="sw" style="background:'+body+';--trim:'+trim+'"></div><div class="nm"><b>'+sk.name+'</b><span>'+(sk.cost?(owned?'Unlocked':sk.cost+' gems'):'Starter ship')+'</span></div>'+btn+'</div>';
+  }).join('');
+  $('hangar').querySelectorAll('[data-use]').forEach(b=>b.onclick = ()=>{ p.arcade.skin = b.dataset.use; saveProfiles(); SFX.tap(); renderHangar(); });
+  $('hangar').querySelectorAll('[data-buy]').forEach(b=>b.onclick = ()=>{ const sk = SKINS.find(x=>x.id===b.dataset.buy); if(p.arcade.gems < sk.cost) return; p.arcade.gems -= sk.cost; p.arcade.owned.push(sk.id); p.arcade.skin = sk.id; saveProfiles(); SFX.fanfare(); toast('🚀 Unlocked the <b>'+sk.name+'</b> ship!'); renderHangar(); renderPickerHead(); });
+}
+function renderPickerHead(){ const p = me(); const nr = nextRank(p.arcade.gems); $('pk-rank').textContent = rankOf(p.arcade.gems)+(nr?' · '+(nr[0]-p.arcade.gems)+' 💎 to '+nr[1]:''); $('pk-gems').textContent = p.arcade.gems; }
+function renderQuestList(){ $('questlist').innerHTML = Object.keys(INFO).map(k=>'<div style="grid-column:1/-1;font-weight:800;padding-top:6px">'+INFO[k].icon+' '+INFO[k].name+'</div>'+QUESTS.filter(q=>q.g===k).map(questCard).join('')).join(''); }
+
+function resizeMg(){ const s = sizeCanvas(mg,false); A.ctx = s.ctx; A.w = s.w; A.h = s.h; A.u = Math.min(s.w,s.h)/100; }
+
+/* ---------------- shared drawing ---------------- */
+function wash(){ const c = A.ctx, g = c.createLinearGradient(0,0,0,A.h); g.addColorStop(0,P.bg); g.addColorStop(1,'#04030f'); c.fillStyle = g; c.fillRect(0,0,A.w,A.h); }
+function hud(txt,sub){
+  const c = A.ctx, u = A.u;
+  c.font = '700 '+(u*5.4)+'px "Space Grotesk", monospace'; c.textAlign = 'left'; c.textBaseline = 'top';
+  c.fillStyle = P.ink; c.globalAlpha = .9; c.fillText(txt,u*4,u*4);
+  if(sub){ c.font = '500 '+(u*3.6)+'px "Baloo 2", sans-serif'; c.globalAlpha = .55; c.fillText(sub,u*4,u*10.5); }
+  c.globalAlpha = 1;
+}
+function hearts(n){
+  const c = A.ctx, u = A.u;
+  for(let i=0;i<3;i++){ c.font = (u*5)+'px sans-serif'; c.textAlign = 'right'; c.textBaseline = 'top'; c.globalAlpha = i < n ? 1 : .2; c.fillStyle = P.accent2;
+    const x = A.w-u*4-i*u*6.5, y = u*4;
+    c.beginPath(); c.moveTo(x,y+u*4.5); c.bezierCurveTo(x-u*5,y+u*1.5,x-u*2.5,y-u*1.5,x,y+u*1); c.bezierCurveTo(x+u*2.5,y-u*1.5,x+u*5,y+u*1.5,x,y+u*4.5); c.fill(); }
+  c.globalAlpha = 1;
+}
+function drawOver(){
+  const c = A.ctx, u = A.u;
+  c.fillStyle = 'rgba(4,3,14,.74)'; c.fillRect(0,0,A.w,A.h);
+  const pw = Math.min(A.w*.82,u*78), ph = u*40, px = (A.w-pw)/2, py = (A.h-ph)/2;
+  c.fillStyle = 'rgba(255,255,255,.07)'; c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = 1; roundRect(c,px,py,pw,ph,u*6); c.fill(); c.stroke();
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillStyle = P.accent; c.font = '800 '+(u*8)+'px "Baloo 2", sans-serif'; c.fillText(A.ot,A.w/2,py+ph*.34);
+  c.fillStyle = P.ink; c.globalAlpha = .8; c.font = '500 '+(u*4.4)+'px "Baloo 2", sans-serif'; c.fillText(A.os,A.w/2,py+ph*.6);
+  c.globalAlpha = .5; c.font = '500 '+(u*3.8)+'px "Baloo 2", sans-serif'; c.fillText('Tap to play again',A.w/2,py+ph*.8); c.globalAlpha = 1;
+}
+function endGame(title){
+  if(A.over) return;
+  A.over = true; best[A.key] = Math.max(best[A.key]||0,A.score); store.set('best',best);
+  A.ot = title; A.os = 'Score '+A.score+'   ·   Best '+best[A.key];
+  $('mg-best').textContent = 'Best: '+best[A.key];
+  checkQuests();
+}
+function parts(s){ return s.parts || (s.parts = []); }
+function stepParts(s,drag=.9){
+  const c = A.ctx, list = parts(s), dt = A.dt;
+  for(let i=list.length-1;i>=0;i--){ const p = list[i]; p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= drag; p.vy *= drag; p.life -= dt*p.fade;
+    if(p.life <= 0){ list.splice(i,1); continue; } c.globalAlpha = clamp(p.life,0,1); c.fillStyle = p.col; c.beginPath(); c.arc(p.x,p.y,p.r*p.life,0,6.2832); c.fill(); }
+  c.globalAlpha = 1;
+}
+function spark(s,x,y,col,n,spread){ const list = parts(s); for(let i=0;i<n;i++){ const a = rand(0,6.2832), sp = rand(spread*.3,spread); list.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,r:rand(A.u*.7,A.u*2),life:1,fade:rand(1.4,2.6),col}); } }
+
+/* ---------------- 1. Comet Rider ---------------- */
+const Comet = {
+  init(){ A.s = {y:A.h/2,v:0,gates:[],next:A.w*.65,started:false,parts:[],stars:[]}; for(let i=0;i<26;i++) A.s.stars.push({x:Math.random()*A.w,y:Math.random()*A.h,z:rand(.3,1)}); },
+  press(){ const s = A.s; if(!s.started){ s.started = true; s.v = 0; } s.v = -.78*A.h; SFX.thrust(); spark(s,A.w*.26-A.u*3,s.y+A.u*1.5,P.accent,4,A.u*22); },
+  update(dt){
+    const s = A.s, u = A.u;
+    if(!s.started){ s.y = A.h/2+(R?0:Math.sin(A.t*2.2)*u*1.6); return; }
+    s.v += 2.45*A.h*dt; s.y += s.v*dt;
+    const sp = (.42+Math.min(.2,A.score*.012))*A.w; s.next -= sp*dt;
+    if(s.next <= 0){ s.next = A.w*.62; const gap = Math.max(u*24,(.34-Math.min(.09,A.score*.006))*A.h); const cy = rand(gap/2+A.h*.09,A.h-gap/2-A.h*.09); s.gates.push({x:A.w+u*7,cy,gap,scored:false}); }
+    const rx = A.w*.26, rr = u*3.4, gw = u*8;
+    for(let i=s.gates.length-1;i>=0;i--){ const g = s.gates[i]; g.x -= sp*dt;
+      if(!g.scored && g.x+gw < rx-rr){ g.scored = true; A.score++; SFX.gate(); }
+      if(g.x+gw < -u*4) s.gates.splice(i,1);
+      if(rx+rr > g.x && rx-rr < g.x+gw && (s.y-rr < g.cy-g.gap/2 || s.y+rr > g.cy+g.gap/2)){ SFX.boom(); endGame('Crashed!'); } }
+    if(s.y > A.h-rr || s.y < rr){ SFX.boom(); endGame('Crashed!'); }
+    for(const st of s.stars){ st.x -= sp*.35*st.z*dt; if(st.x < 0){ st.x = A.w; st.y = Math.random()*A.h; } }
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s; wash();
+    c.fillStyle = P.star; for(const st of s.stars){ c.globalAlpha = st.z*.6; c.beginPath(); c.arc(st.x,st.y,st.z*1.6,0,6.2832); c.fill(); } c.globalAlpha = 1;
+    const gw = u*8;
+    for(const g of s.gates){ const grad = c.createLinearGradient(g.x,0,g.x+gw,0); grad.addColorStop(0,P.accent2); grad.addColorStop(1,'rgba(0,0,0,.35)'); c.fillStyle = grad;
+      roundRect(c,g.x,-u*4,gw,g.cy-g.gap/2+u*4,u*3); c.fill(); roundRect(c,g.x,g.cy+g.gap/2,gw,A.h-(g.cy+g.gap/2)+u*4,u*3); c.fill();
+      c.fillStyle = P.ink; c.globalAlpha = .35; roundRect(c,g.x+u*.8,g.cy-g.gap/2-u*1.6,gw-u*1.6,u*1.2,u*.6); c.fill(); roundRect(c,g.x+u*.8,g.cy+g.gap/2+u*.4,gw-u*1.6,u*1.2,u*.6); c.fill(); c.globalAlpha = 1; }
+    stepParts(s,.86);
+    const rx = A.w*.26, tilt = clamp(s.v/(A.h*1.1),-.5,.7);
+    c.save(); c.translate(rx,s.y); c.rotate(tilt);
+    if(s.started && s.v < 0){ const fl = u*rand(4,7); const fg = c.createLinearGradient(-u*3,0,-u*3-fl,0); fg.addColorStop(0,P.accent); fg.addColorStop(1,'transparent'); c.fillStyle = fg; c.beginPath(); c.moveTo(-u*3,-u*1.6); c.lineTo(-u*3-fl,0); c.lineTo(-u*3,u*1.6); c.closePath(); c.fill(); }
+    const sk = skinCols();
+    c.fillStyle = sk.body; c.beginPath(); c.moveTo(u*5,0); c.quadraticCurveTo(u*1.5,-u*3.1,-u*3,-u*2.2); c.lineTo(-u*3,u*2.2); c.quadraticCurveTo(u*1.5,u*3.1,u*5,0); c.closePath(); c.fill();
+    c.fillStyle = sk.trim; c.beginPath(); c.moveTo(-u*1,-u*2); c.lineTo(-u*4.4,-u*4.4); c.lineTo(-u*2.6,-u*1.6); c.closePath(); c.fill(); c.beginPath(); c.moveTo(-u*1,u*2); c.lineTo(-u*4.4,u*4.4); c.lineTo(-u*2.6,u*1.6); c.closePath(); c.fill();
+    c.fillStyle = P.bg2; c.beginPath(); c.arc(u*1.4,0,u*1.25,0,6.2832); c.fill(); c.restore();
+    hud('Gates '+A.score, s.started ? '' : 'Tap or press Space to launch');
+  }
+};
+
+/* ---------------- 2. Star Defender ---------------- */
+const Defender = {
+  init(){ A.s = {x:A.w/2,tx:A.w/2,bolts:[],rocks:[],parts:[],cd:0,spawn:.6}; },
+  press(_,x){ A.s.tx = x; }, move(_,x){ A.s.tx = x; },
+  update(dt){
+    const s = A.s, u = A.u;
+    if(keys.ArrowLeft) s.tx -= A.w*.9*dt; if(keys.ArrowRight) s.tx += A.w*.9*dt;
+    s.tx = clamp(s.tx,u*7,A.w-u*7); s.x += (s.tx-s.x)*Math.min(1,dt*13);
+    s.cd -= dt; if(s.cd <= 0){ s.cd = .23; s.bolts.push({x:s.x-u*3.2,y:A.h-u*13},{x:s.x+u*3.2,y:A.h-u*13}); SFX.zap(); }
+    for(let i=s.bolts.length-1;i>=0;i--){ const b = s.bolts[i]; b.y -= 1.15*A.h*dt; if(b.y < -u*4) s.bolts.splice(i,1); }
+    s.spawn -= dt;
+    if(s.spawn <= 0){ s.spawn = Math.max(.42,1.05-A.score*.012); const r = u*rand(4.2,7); const pts = []; for(let i=0;i<9;i++) pts.push(rand(.75,1.15));
+      s.rocks.push({x:rand(r+u*3,A.w-r-u*3),y:-r-u*2,r,pts,rot:rand(0,6.28),vr:rand(-1.2,1.2),vy:(.17+Math.min(.16,A.score*.004))*A.h,hp:r>u*5.6?3:2}); }
+    for(let i=s.rocks.length-1;i>=0;i--){ const k = s.rocks[i]; k.y += k.vy*dt; k.rot += k.vr*dt;
+      for(let j=s.bolts.length-1;j>=0;j--){ const b = s.bolts[j];
+        if(Math.abs(b.x-k.x) < k.r && Math.abs(b.y-k.y) < k.r){ s.bolts.splice(j,1); k.hp--; spark(s,b.x,k.y+k.r*.4,P.ink,5,u*30);
+          if(k.hp <= 0){ spark(s,k.x,k.y,P.accent2,16,u*55); s.rocks.splice(i,1); A.score += 10; A.run.kills++; SFX.boom(); break; } } }
+      if(s.rocks[i] === k){ if(k.y-k.r > A.h+u*4) s.rocks.splice(i,1); else if(k.y+k.r > A.h-u*13 && Math.abs(k.x-s.x) < k.r+u*5){ spark(s,s.x,A.h-u*10,P.accent,22,u*60); SFX.boom(); endGame('Ship down!'); } } }
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s; wash();
+    c.strokeStyle = P.accent; c.lineWidth = u*.9; c.lineCap = 'round'; c.shadowBlur = u*2.5; c.shadowColor = P.accent;
+    for(const b of s.bolts){ c.beginPath(); c.moveTo(b.x,b.y); c.lineTo(b.x,b.y+u*4.5); c.stroke(); } c.shadowBlur = 0;
+    for(const k of s.rocks){ c.save(); c.translate(k.x,k.y); c.rotate(k.rot); c.beginPath();
+      k.pts.forEach((p,i)=>{ const a = i/k.pts.length*6.2832, X = Math.cos(a)*k.r*p, Y = Math.sin(a)*k.r*p; i ? c.lineTo(X,Y) : c.moveTo(X,Y); }); c.closePath();
+      const g = c.createLinearGradient(-k.r,-k.r,k.r,k.r); g.addColorStop(0,P.dim); g.addColorStop(1,P.bg2); c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(255,255,255,.28)'; c.lineWidth = u*.5; c.stroke();
+      if(k.hp <= 1){ c.strokeStyle = P.accent2; c.lineWidth = u*.7; c.beginPath(); c.moveTo(-k.r*.4,-k.r*.3); c.lineTo(0,k.r*.1); c.lineTo(k.r*.35,-k.r*.4); c.stroke(); } c.restore(); }
+    stepParts(s,.9);
+    c.save(); c.translate(s.x,A.h-u*9);
+    const eg = c.createRadialGradient(0,u*3,0,0,u*3,u*5); eg.addColorStop(0,P.accent); eg.addColorStop(1,'transparent'); c.fillStyle = eg; c.beginPath(); c.arc(0,u*3,u*5,0,6.2832); c.fill();
+    const sk = skinCols();
+    c.fillStyle = sk.body; c.beginPath(); c.moveTo(0,-u*6); c.quadraticCurveTo(u*2,-u*1,u*6,u*2.6); c.lineTo(u*2,u*2.6); c.lineTo(0,u*1.2); c.lineTo(-u*2,u*2.6); c.lineTo(-u*6,u*2.6); c.quadraticCurveTo(-u*2,-u*1,0,-u*6); c.closePath(); c.fill();
+    c.fillStyle = sk.trim; roundRect(c,-u*1.3,-u*3.4,u*2.6,u*4,u*1.2); c.fill(); c.restore();
+    hud('Points '+A.score,'Slide to steer · cannons fire for you');
+  }
+};
+
+/* ---------------- 3. Overdrive ---------------- */
+const Overdrive = {
+  init(){ A.s = {x:A.w/2,tx:A.w/2,cars:[],dash:0,spawn:.5,lastLane:-1,parts:[]}; },
+  press(_,x){ A.s.tx = x; }, move(_,x){ A.s.tx = x; },
+  road(){ const w = Math.min(A.w*.78,A.u*74); return {x0:(A.w-w)/2,w}; },
+  laneX(i){ const {x0,w} = Overdrive.road(); return x0+w*(i+.5)/3; },
+  update(dt){
+    const s = A.s, u = A.u, {x0,w} = Overdrive.road();
+    const spd = Math.min(1.2*A.h,(.55+A.score*.014)*A.h); s.dash += spd*dt;
+    if(keys.ArrowLeft) s.tx -= A.w*.95*dt; if(keys.ArrowRight) s.tx += A.w*.95*dt;
+    s.tx = clamp(s.tx,x0+u*5.5,x0+w-u*5.5); s.x += (s.tx-s.x)*Math.min(1,dt*11);
+    s.spawn -= dt;
+    if(s.spawn <= 0){ s.spawn = Math.max(.42,.95-A.score*.02); let lane; do { lane = Math.floor(Math.random()*3); } while(lane === s.lastLane && Math.random() < .7); s.lastLane = lane; s.cars.push({lane,y:-u*18,hue:Math.random()<.5?P.accent2:P.good}); }
+    for(let i=s.cars.length-1;i>=0;i--){ const k = s.cars[i]; k.y += spd*dt; const kx = Overdrive.laneX(k.lane);
+      if(k.y > A.h-u*20 && k.y < A.h-u*4 && Math.abs(kx-s.x) < u*9){ spark(s,s.x,A.h-u*13,P.accent,24,u*62); SFX.boom(); endGame('Wipeout!'); }
+      if(k.y > A.h+u*16){ s.cars.splice(i,1); A.score++; SFX.gate(); } }
+  },
+  car(x,y,body,dark){
+    const c = A.ctx, u = A.u;
+    c.fillStyle = 'rgba(0,0,0,.35)'; roundRect(c,x-u*4.6,y-u*6.4,u*9.2,u*13.4,u*2.6); c.fill();
+    c.fillStyle = body; roundRect(c,x-u*4.2,y-u*7,u*8.4,u*13.4,u*2.4); c.fill();
+    c.fillStyle = dark; roundRect(c,x-u*2.9,y-u*4.6,u*5.8,u*4.2,u*1.4); c.fill(); roundRect(c,x-u*3.1,y+u*2.4,u*6.2,u*2.6,u*1); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.22)'; roundRect(c,x-u*3.6,y-u*7,u*1.1,u*13.4,u*.6); c.fill();
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s, {x0,w} = Overdrive.road(); wash();
+    const vg = c.createLinearGradient(x0-u*6,0,x0+w+u*6,0); vg.addColorStop(0,'transparent'); vg.addColorStop(.5,'rgba(255,255,255,.05)'); vg.addColorStop(1,'transparent'); c.fillStyle = vg; c.fillRect(x0-u*6,0,w+u*12,A.h);
+    c.fillStyle = 'rgba(0,0,0,.45)'; c.fillRect(x0,0,w,A.h);
+    c.strokeStyle = P.accent; c.lineWidth = u*.8; c.beginPath(); c.moveTo(x0,0); c.lineTo(x0,A.h); c.moveTo(x0+w,0); c.lineTo(x0+w,A.h); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.4)'; c.lineWidth = u*.9; c.setLineDash([u*7,u*6]); c.lineDashOffset = -(s.dash%(u*13));
+    for(const lx of [x0+w/3,x0+2*w/3]){ c.beginPath(); c.moveTo(lx,0); c.lineTo(lx,A.h); c.stroke(); } c.setLineDash([]);
+    for(const k of s.cars) Overdrive.car(Overdrive.laneX(k.lane),k.y,k.hue,'rgba(0,0,0,.55)');
+    const sk = skinCols(); Overdrive.car(s.x,A.h-u*13,sk.body,sk.trim); stepParts(s,.9);
+    hud('Passed '+A.score,'Steer left and right');
+  }
+};
+
+/* ---------------- 4. Grid Duel ---------------- */
+const LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function winner(b){ for(const L of LINES) if(b[L[0]] && b[L[0]]===b[L[1]] && b[L[1]]===b[L[2]]) return {p:b[L[0]],L}; return null; }
+function minimax(b,p){
+  const w = winner(b); if(w) return {sc:w.p===2?10:-10}; if(!b.includes(0)) return {sc:0};
+  let out = null;
+  for(let i=0;i<9;i++){ if(b[i]) continue; b[i] = p; const sc = minimax(b,p===1?2:1).sc; b[i] = 0; if(!out || (p===2 ? sc>out.sc : sc<out.sc)) out = {i,sc}; }
+  return out;
+}
+const Grid = {
+  init(){ A.s = {b:[0,0,0,0,0,0,0,0,0],turn:1,marks:{},line:null,lineT:0,wait:0,done:false}; },
+  geo(){ const size = Math.min(A.w,A.h)*.82, ox = (A.w-size)/2, oy = (A.h-size)/2; return {size,ox,oy,cs:size/3}; },
+  place(i,p){ const s = A.s; s.b[i] = p; s.marks[i] = 0; const w = winner(s.b);
+    if(w){ s.line = w.L; s.done = true; s.lineT = 0; if(w.p===1){ A.score = 1; const pr = me(); pr.arcade.totals.wins = (pr.arcade.totals.wins||0)+1; if(s.b.filter(x=>x===1).length <= 3) A.run.fastwin = 1; saveProfiles(); SFX.fanfare(); } else SFX.wrong(); } else if(!s.b.includes(0)){ s.done = true; SFX.tap(); } },
+  press(_,x,y){
+    const s = A.s; if(s.done || s.turn !== 1 || s.wait > 0) return;
+    const {size,ox,oy,cs} = Grid.geo(); if(x<ox||x>ox+size||y<oy||y>oy+size) return;
+    const i = Math.floor((y-oy)/cs)*3+Math.floor((x-ox)/cs); if(s.b[i]) return;
+    SFX.zap(); Grid.place(i,1); if(!s.done){ s.turn = 2; s.wait = .45; }
+  },
+  update(dt){
+    const s = A.s; for(const k in s.marks) s.marks[k] = Math.min(1,s.marks[k]+dt*4.5); if(s.line) s.lineT = Math.min(1,s.lineT+dt*3);
+    if(s.wait > 0){ s.wait -= dt; if(s.wait <= 0 && s.turn === 2 && !s.done){ const free = s.b.map((v,i)=>v?-1:i).filter(i=>i>=0);
+      const mv = Math.random() < .25 ? free[Math.floor(Math.random()*free.length)] : minimax(s.b.slice(),2).i; SFX.tap(); Grid.place(mv,2); s.turn = 1; } }
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s; wash(); const {size,ox,oy,cs} = Grid.geo();
+    c.fillStyle = 'rgba(255,255,255,.04)'; c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 1; roundRect(c,ox-u*2,oy-u*2,size+u*4,size+u*4,u*6); c.fill(); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = u*.8; c.lineCap = 'round';
+    for(let i=1;i<3;i++){ c.beginPath(); c.moveTo(ox+cs*i,oy+u*2); c.lineTo(ox+cs*i,oy+size-u*2); c.stroke(); c.beginPath(); c.moveTo(ox+u*2,oy+cs*i); c.lineTo(ox+size-u*2,oy+cs*i); c.stroke(); }
+    for(let i=0;i<9;i++){ if(!s.b[i]) continue; const t = s.marks[i] ?? 1, cx = ox+(i%3)*cs+cs/2, cy = oy+Math.floor(i/3)*cs+cs/2, r = cs*.27; c.lineWidth = u*2.2; c.lineCap = 'round';
+      if(s.b[i]===1){ c.strokeStyle = P.accent; const a = Math.min(1,t*2), b2 = Math.max(0,t*2-1); c.beginPath(); c.moveTo(cx-r,cy-r); c.lineTo(cx-r+2*r*a,cy-r+2*r*a); c.stroke(); if(b2>0){ c.beginPath(); c.moveTo(cx+r,cy-r); c.lineTo(cx+r-2*r*b2,cy-r+2*r*b2); c.stroke(); } }
+      else { c.strokeStyle = P.accent2; c.beginPath(); c.arc(cx,cy,r,-1.5708,-1.5708+6.2832*t); c.stroke(); } }
+    if(s.line && s.lineT > 0){ const p0 = s.line[0], p2 = s.line[2]; const x1 = ox+(p0%3)*cs+cs/2, y1 = oy+Math.floor(p0/3)*cs+cs/2, x2 = ox+(p2%3)*cs+cs/2, y2 = oy+Math.floor(p2/3)*cs+cs/2;
+      c.strokeStyle = s.b[p0]===1 ? P.good : P.accent2; c.lineWidth = u*1.6; c.shadowBlur = u*3; c.shadowColor = c.strokeStyle; c.beginPath(); c.moveTo(x1,y1); c.lineTo(x1+(x2-x1)*s.lineT,y1+(y2-y1)*s.lineT); c.stroke(); c.shadowBlur = 0; }
+    if(!A.over && s.done && (!s.line || s.lineT >= .95)){ const w = winner(s.b); endGame(!w ? 'A draw' : w.p===1 ? 'You win!' : 'Computer wins'); }
+    hud(s.done ? '' : (s.turn===1 ? 'Your turn' : 'Thinking…'),'Three in a row wins');
+  }
+};
+
+/* ---------------- 5. Bubble Blitz ---------------- */
+const Bubbles = {
+  init(){ A.s = {bubbles:[],spawn:.3,lives:3,parts:[]}; },
+  press(_,x,y){
+    const s = A.s, u = A.u;
+    for(let i=s.bubbles.length-1;i>=0;i--){ const b = s.bubbles[i]; if(Math.hypot(b.x-x,b.y-y) < b.r+u*1.8){ s.bubbles.splice(i,1); A.score += b.gold ? 5 : 1; A.run.pops++; if(b.gold) A.run.gold++; SFX.pop(); spark(s,b.x,b.y,b.gold?P.accent:P.star,b.gold?18:9,u*45); return; } }
+  },
+  update(dt){
+    const s = A.s, u = A.u;
+    s.spawn -= dt;
+    if(s.spawn <= 0){ s.spawn = Math.max(.32,.85-A.score*.008); s.bubbles.push({x:rand(u*9,A.w-u*9),y:A.h+u*8,r:u*rand(4.5,8.5),vy:-(.13+Math.min(.22,A.score*.003))*A.h,wob:rand(0,6.28),gold:Math.random()<.12}); }
+    for(let i=s.bubbles.length-1;i>=0;i--){ const b = s.bubbles[i]; b.y += b.vy*dt; b.x += Math.sin(A.t*2+b.wob)*u*.5;
+      if(b.y+b.r < 0){ s.bubbles.splice(i,1); s.lives--; SFX.wrong(); if(s.lives <= 0) endGame('Bubbles got away!'); } }
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s; wash();
+    for(const b of s.bubbles){
+      const g = c.createRadialGradient(b.x-b.r*.35,b.y-b.r*.35,b.r*.1,b.x,b.y,b.r);
+      if(b.gold){ g.addColorStop(0,'#fff6d5'); g.addColorStop(.6,P.accent); g.addColorStop(1,'rgba(255,176,32,.35)'); } else { g.addColorStop(0,'rgba(255,255,255,.55)'); g.addColorStop(.7,'rgba(120,200,255,.28)'); g.addColorStop(1,'rgba(120,200,255,.55)'); }
+      c.fillStyle = g; c.beginPath(); c.arc(b.x,b.y,b.r,0,6.2832); c.fill();
+      c.strokeStyle = b.gold ? P.accent : 'rgba(255,255,255,.6)'; c.lineWidth = u*.5; c.stroke();
+      c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.ellipse(b.x-b.r*.4,b.y-b.r*.45,b.r*.22,b.r*.12,-.7,0,6.2832); c.fill();
+    }
+    stepParts(s,.88); hud('Popped '+A.score,'Tap the bubbles'); hearts(s.lives);
+  }
+};
+
+/* ---------------- 6. Star Catcher ---------------- */
+const Catcher = {
+  init(){ A.s = {x:A.w/2,tx:A.w/2,items:[],spawn:.4,lives:3,parts:[],wob:0}; },
+  press(_,x){ A.s.tx = x; }, move(_,x){ A.s.tx = x; },
+  update(dt){
+    const s = A.s, u = A.u;
+    if(keys.ArrowLeft) s.tx -= A.w*.9*dt; if(keys.ArrowRight) s.tx += A.w*.9*dt;
+    s.tx = clamp(s.tx,u*9,A.w-u*9); s.x += (s.tx-s.x)*Math.min(1,dt*12);
+    s.spawn -= dt;
+    if(s.spawn <= 0){ s.spawn = Math.max(.35,.9-A.score*.012); s.items.push({x:rand(u*6,A.w-u*6),y:-u*6,rock:Math.random()<.18,vy:(.24+Math.min(.28,A.score*.006))*A.h,rot:rand(0,6.28),vr:rand(-3,3)}); }
+    const by = A.h-u*12, bw = u*9;
+    for(let i=s.items.length-1;i>=0;i--){ const it = s.items[i]; it.y += it.vy*dt; it.rot += it.vr*dt;
+      if(it.y > by-u*2 && it.y < by+u*5 && Math.abs(it.x-s.x) < bw){ s.items.splice(i,1);
+        if(it.rock){ s.lives--; s.wob = 1; A.run.cleanRun = 0; SFX.boom(); spark(s,it.x,by,P.accent2,14,u*50); if(s.lives <= 0) endGame('Basket broke!'); }
+        else { A.score++; A.run.cleanRun++; A.run.clean = Math.max(A.run.clean,A.run.cleanRun); SFX.gate(); spark(s,it.x,by,P.accent,10,u*40); } continue; }
+      if(it.y > A.h+u*8) s.items.splice(i,1); }
+    s.wob = Math.max(0,s.wob-dt*3);
+  },
+  draw(){
+    const c = A.ctx, u = A.u, s = A.s; wash();
+    for(const it of s.items){ c.save(); c.translate(it.x,it.y); c.rotate(it.rot);
+      if(it.rock){ c.fillStyle = P.dim; c.beginPath(); for(let k=0;k<7;k++){ const a = k/7*6.2832, rr = u*3.2*(k%2?.8:1.05); k ? c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr) : c.moveTo(Math.cos(a)*rr,Math.sin(a)*rr); } c.closePath(); c.fill(); c.strokeStyle = 'rgba(0,0,0,.35)'; c.lineWidth = u*.5; c.stroke(); }
+      else { c.shadowBlur = u*3; c.shadowColor = P.accent; c.fillStyle = P.accent; starPath(c,0,0,u*3.6,5); c.fill(); c.shadowBlur = 0; }
+      c.restore(); }
+    stepParts(s,.9);
+    const by = A.h-u*12, bw = u*9, tilt = Math.sin(A.t*30)*s.wob*.15;
+    c.save(); c.translate(s.x,by); c.rotate(tilt);
+    const sk = skinCols();
+    c.fillStyle = sk.trim; c.beginPath(); c.moveTo(-bw,-u*2); c.lineTo(bw,-u*2); c.lineTo(bw*.78,u*7); c.lineTo(-bw*.78,u*7); c.closePath(); c.fill();
+    c.strokeStyle = 'rgba(0,0,0,.28)'; c.lineWidth = u*.6; for(let k=-2;k<=2;k++){ c.beginPath(); c.moveTo(k*bw*.38,-u*2); c.lineTo(k*bw*.3,u*7); c.stroke(); }
+    c.fillStyle = sk.body; roundRect(c,-bw-u*.6,-u*3.2,bw*2+u*1.2,u*2.2,u*1); c.fill();
+    c.strokeStyle = sk.body; c.lineWidth = u*.9; c.beginPath(); c.arc(0,-u*3,bw*.7,Math.PI,0); c.stroke(); c.restore();
+    hud('Stars '+A.score,'Slide the basket'); hearts(s.lives);
+  }
+};
+
+const GAMES = {comet:Comet, defender:Defender, overdrive:Overdrive, grid:Grid, bubbles:Bubbles, catcher:Catcher};
+
+/* ---------------- arcade shell ---------------- */
+function mgLoop(ts){
+  const dt = Math.min(.033,(ts-mgLast)/1000 || 0); mgLast = ts; A.t += dt; A.dt = dt;
+  const g = GAMES[A.key]; if(!A.over){ g.update(dt); A.run.time += dt; A.qt += dt; if(A.qt > .5){ A.qt = 0; checkQuests(); } } g.draw(); if(A.over) drawOver();
+  mgRAF = requestAnimationFrame(mgLoop);
+}
+function bootGame(){
+  checkQuests();
+  A.over = false; A.score = 0; A.t = 0; A.run = {time:0,kills:0,pops:0,gold:0,clean:0,cleanRun:0,fastwin:0}; A.qt = 0; GAMES[A.key].init();
+  const p = me(); p.arcade.totals.gamesPlayed = (p.arcade.totals.gamesPlayed||0)+1;
+  renderQuests(); renderArcadeHead();
+  $('mg-title').textContent = INFO[A.key].icon+' '+INFO[A.key].name; $('mg-say').textContent = INFO[A.key].say;
+  $('mg-best').textContent = 'Best: '+(best[A.key]||0);
+}
+function startBreak(free, key){
+  A.free = !!free;
+  const list = Object.keys(GAMES); A.key = key || list[Math.floor(Math.random()*list.length)];
+  $('arcade').classList.add('on'); skyPaused = true; setTool('tap'); wipeBoard();
+  $('mg-done').textContent = free ? 'Done' : 'Back to math';
+  $('mg-clock').style.display = free ? 'none' : ''; $('mg-barwrap').style.display = free ? 'none' : '';
+  if(!free){ const p = me(); p.arcadeBreaks = (p.arcadeBreaks||0)+1; saveProfiles(); }
+  requestAnimationFrame(()=>{ resizeMg(); bootGame(); if(!mgRAF){ mgLast = performance.now(); mgRAF = requestAnimationFrame(mgLoop); } });
+  clearInterval(breakTimer);
+  if(!free){ breakTotal = breakLeft = settings.breakSecs; tickClock(); breakTimer = setInterval(()=>{ breakLeft--; tickClock(); if(breakLeft <= 0) endBreak(); },1000); }
+}
+function tickClock(){ $('mg-clock').textContent = breakLeft+'s'; $('mg-bar').style.transform = 'scaleX('+(breakLeft/breakTotal)+')'; }
+function endBreak(){
+  checkQuests(); saveProfiles();
+  clearInterval(breakTimer); cancelAnimationFrame(mgRAF); mgRAF = null;
+  $('arcade').classList.remove('on'); skyPaused = false;
+  if(A.free) show('home'); else nextQuestion();
+}
+$('mg-done').addEventListener('click',endBreak);
+$('mg-switch').addEventListener('click',()=>openPicker(false));
+
+/* picker */
+function pickerTab(which){
+  for(const [id,el] of [['tab-games','gamegrid'],['tab-hangar','hangar'],['tab-quests','questlist']]){ $(id).classList.toggle('on',id==='tab-'+which); $(el).hidden = el !== {games:'gamegrid',hangar:'hangar',quests:'questlist'}[which]; }
+  $('picker-note').textContent = which==='hangar' ? 'Ship colors show up in every game.' : which==='quests' ? 'Quests count while you play. Gems unlock ships in the Hangar.' : 'Complete quests to earn gems. Spend gems in the Hangar on new ship colors.';
+}
+$('tab-games').onclick = ()=>pickerTab('games'); $('tab-hangar').onclick = ()=>pickerTab('hangar'); $('tab-quests').onclick = ()=>pickerTab('quests');
+function openPicker(free){
+  $('picker-title').textContent = free ? 'Arcade' : 'Switch game';
+  $('gamegrid').innerHTML = Object.entries(INFO).map(([k,i])=>{ const done = QUESTS.filter(q=>q.g===k && me().arcade.done.includes(q.id)).length; return '<button class="gamecard" data-k="'+k+'"><i>'+i.icon+'</i><b>'+i.name+'</b><span>'+i.blurb+' · best '+(best[k]||0)+'</span><span>Quests '+done+'/3</span></button>'; }).join('');
+  $('gamegrid').querySelectorAll('.gamecard').forEach(b=>b.onclick = ()=>{
+    $('picker').classList.remove('on');
+    if(free) startBreak(true, b.dataset.k);
+    else { A.key = b.dataset.k; bootGame(); }
+  });
+  renderPickerHead(); renderHangar(); renderQuestList(); pickerTab('games');
+  $('picker').classList.add('on');
+}
+$('picker-close').onclick = ()=>$('picker').classList.remove('on');
+
+function mgPoint(e){ const r = mg.getBoundingClientRect(); return {x:e.clientX-r.left,y:e.clientY-r.top}; }
+mg.addEventListener('pointerdown',e=>{ e.preventDefault(); ac(); if(A.over){ bootGame(); return; } const p = mgPoint(e); GAMES[A.key].press?.(A,p.x,p.y); });
+mg.addEventListener('pointermove',e=>{ if(A.over) return; const p = mgPoint(e); GAMES[A.key].move?.(A,p.x,p.y); });
+
+/* ---------------- keyboard ---------------- */
+addEventListener('keydown',e=>{
+  keys[e.key] = true;
+  const arcadeOpen = $('arcade').classList.contains('on'), modalOpen = document.querySelector('.modal.on');
+  if(arcadeOpen){
+    if(e.key === ' ' || e.key === 'ArrowUp'){ e.preventDefault(); if(A.over) bootGame(); else GAMES[A.key].press?.(A,A.w/2,A.h/2); }
+    if(e.key === 'Escape') endBreak();
+    return;
+  }
+  if(modalOpen){ if(e.key === 'Escape') modalOpen.classList.remove('on'); return; }
+  if(screen === 'play'){
+    if(['1','2','3','4'].includes(e.key) && q && +e.key <= q.options.length) answer(+e.key-1);
+    if(e.key === 'Enter' || e.key.toLowerCase() === 'n') nextProblem();
+    if(e.key === 'Escape') $('quit').click();
+    if(e.key.toLowerCase() === 'r') speak(q && q.read);
+  } else if(e.key === 'Escape' && screen !== 'home') show('home');
+});
+addEventListener('keyup',e=>{ keys[e.key] = false; });
+addEventListener('pointerdown',()=>{ try{ ac(); }catch(e){} },{once:true});
+
+/* ---------------- boot ---------------- */
+function resizeAll(){ resizeSky(); resizeFx(); resizeBoard(); if($('arcade').classList.contains('on')) resizeMg(); }
+let rzT = null;
+addEventListener('resize',()=>{ clearTimeout(rzT); rzT = setTimeout(resizeAll,120); });
+addEventListener('orientationchange',()=>setTimeout(resizeAll,260));
+document.addEventListener('visibilitychange',()=>{ if(document.hidden && 'speechSynthesis' in window) speechSynthesis.cancel(); });
+
+applyTheme();
+resizeAll();
+renderHome();
+requestAnimationFrame(mainLoop);
+</script>
+</body>
+</html>
